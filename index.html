@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Từ vựng">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Từ vựng</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--text:#1a1d24;--muted:#6b7280;--line:#e3e7ef;--pri:#2563eb;--danger:#dc2626;--ok:#16a34a;--chip:#e8eefc}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#1a1d24;--text:#eceef3;--muted:#9aa3b2;--line:#2a2f3a;--pri:#3b82f6;--danger:#f87171;--ok:#22c55e;--chip:#1f2a44}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);padding-bottom:env(safe-area-inset-bottom)}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;background:var(--card);border-bottom:1px solid var(--line)}
+header h1{flex:1;margin:0 4px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{max-width:640px;margin:0 auto;padding:14px 16px 40px}
+button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.icon{background:none;border:0;font-size:22px;min-width:40px;height:40px;border-radius:10px;color:var(--pri);padding:0 6px}
+#back{font-size:34px;line-height:1;padding-bottom:4px}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px;font-weight:600}
+.btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.45}
+.block{display:block;width:100%;margin:14px 0}
+.row{display:flex;gap:10px;margin:10px 0}
+.grow{flex:1;min-width:0}
+.list{list-style:none;margin:10px 0;padding:0;background:var(--card);border-radius:14px;border:1px solid var(--line);overflow:hidden}
+.list>li{border-bottom:1px solid var(--line)}
+.list>li:last-child{border-bottom:0}
+.item{display:flex;align-items:center;gap:8px;padding:12px 12px;color:inherit;text-decoration:none}
+.item small{display:block;color:var(--muted);font-size:14px}
+.chev{color:var(--muted);font-size:22px}
+.ipa{color:var(--muted);font-size:14px}
+.ex{font-style:italic}
+.chk{font-weight:700;color:var(--muted);opacity:.3}
+.chk.on{opacity:1;color:var(--ok)}
+.empty{text-align:center;color:var(--muted);padding:30px 10px;list-style:none}
+input,textarea{display:block;width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);margin-top:4px}
+input[type=search]{margin:4px 0 0}
+label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
+.bad{border-color:var(--danger)}
+dialog{border:0;border-radius:16px;padding:18px;width:min(92vw,440px);margin:calc(env(safe-area-inset-top) + 16px) auto auto;background:var(--card);color:var(--text)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog h2{margin:0 0 6px;font-size:19px}
+#dlgBtns{flex-wrap:wrap;justify-content:flex-end;margin:16px 0 0}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font-size:14px}
+.chip.on{background:var(--chip);border-color:var(--pri);color:var(--pri)}
+.prog{text-align:center;color:var(--muted);margin:14px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;margin:10px 0;box-shadow:0 6px 20px rgba(0,0,0,.06);-webkit-user-select:none;user-select:none;cursor:pointer}
+.big{font-size:32px;font-weight:700;word-break:break-word}
+.back{margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);width:100%;font-size:20px}
+.back .ex{font-size:16px;color:var(--muted);margin-top:8px}
+.hint{color:var(--muted);font-size:14px;margin-top:14px}
+.done{text-align:center;padding:40px 10px}
+.done .big{margin-bottom:10px}
+.backup{margin-top:28px}
+.backup h3{margin:0 0 4px;font-size:16px}
+.muted{color:var(--muted);font-size:14px;margin:4px 0}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;z-index:20}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <button id="back" class="icon" hidden aria-label="Quay lại">‹</button>
+  <h1 id="title">Từ vựng</h1>
+  <div id="actions"></div>
+</header>
+<main id="app"></main>
+
+<dialog id="dlg">
+  <h2 id="dlgTitle"></h2>
+  <div id="dlgBody"></div>
+  <div class="row" id="dlgBtns"></div>
+</dialog>
+<input type="file" id="fileIn" accept="application/json,.json" hidden>
+<div id="toast"></div>
+
+<script>
+'use strict';
+const KEY = 'tuvung-data-v1';
+const OPT_KEY = 'tuvung-study-v1';
+const $ = s => document.querySelector(s);
+const app = $('#app');
+
+// ===== Dữ liệu =====
+let db = load();
+let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false }, readJSON(OPT_KEY));
+let st = null; // trạng thái phiên học flashcard
+
+function readJSON(key) {
+  try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
+}
+function load() {
+  const d = readJSON(KEY);
+  if (d && Array.isArray(d.topics)) return d;
+  // Lần đầu mở: tạo 1 chủ đề ví dụ (có thể xóa)
+  return { topics: [{ id: uid(), name: 'Gia đình (ví dụ)', words: [
+    { id: uid(), en: 'father', ipa: '/ˈfɑː.ðər/', vi: 'bố, cha', ex: 'My father is a teacher.', learned: false },
+    { id: uid(), en: 'mother', ipa: '/ˈmʌð.ər/', vi: 'mẹ', ex: 'My mother cooks very well.', learned: false },
+    { id: uid(), en: 'brother', ipa: '/ˈbrʌð.ər/', vi: 'anh trai, em trai', ex: 'I have one brother.', learned: false }
+  ] }] };
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); }
+  catch (e) { toast('Không lưu được dữ liệu!'); }
+}
+function saveOpt() {
+  try { localStorage.setItem(OPT_KEY, JSON.stringify(opt)); } catch (e) {}
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function topicById(id) { return db.topics.find(t => t.id === id); }
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ===== Tiện ích giao diện =====
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function setBar(title, backHash, actions) {
+  $('#title').textContent = title;
+  const b = $('#back');
+  b.hidden = backHash == null;
+  b.onclick = () => { location.hash = backHash; };
+  const box = $('#actions');
+  box.innerHTML = '';
+  (actions || []).forEach(([text, label, fn]) => {
+    const btn = document.createElement('button');
+    btn.className = 'icon';
+    btn.textContent = text;
+    btn.setAttribute('aria-label', label);
+    btn.onclick = fn;
+    box.appendChild(btn);
+  });
+}
+
+// Hộp thoại chung: trả về Promise {btn, v}
+function ask({ title, msg, fields = [], buttons }) {
+  return new Promise(resolve => {
+    const d = $('#dlg');
+    const finish = r => { d.oncancel = null; d.close(); resolve(r); };
+    d.oncancel = e => { e.preventDefault(); finish({ btn: null, v: {} }); };
+    $('#dlgTitle').textContent = title;
+    $('#dlgBody').innerHTML = (msg ? `<p>${esc(msg)}</p>` : '') + fields.map(f => {
+      const attr = `name="${f.name}" placeholder="${esc(f.ph || '')}" autocomplete="off"` +
+        (f.en ? ' autocapitalize="none" spellcheck="false" lang="en"' : '');
+      const input = f.multi
+        ? `<textarea ${attr} rows="2">${esc(f.value)}</textarea>`
+        : `<input ${attr} value="${esc(f.value)}">`;
+      return `<label>${esc(f.label)}${f.required ? ' *' : ''}${input}</label>`;
+    }).join('');
+    const box = $('#dlgBtns');
+    box.innerHTML = '';
+    buttons.forEach(b => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn ' + (b.cls || '');
+      btn.textContent = b.label;
+      btn.onclick = () => {
+        const v = {};
+        let bad = null;
+        fields.forEach(f => {
+          const el = d.querySelector(`[name="${f.name}"]`);
+          v[f.name] = el.value.trim();
+          el.classList.toggle('bad', !!(b.check && f.required && !v[f.name]));
+          if (b.check && f.required && !v[f.name] && !bad) bad = el;
+        });
+        if (bad) { bad.focus(); toast('Hãy nhập các mục có dấu *'); return; }
+        finish({ btn: b.value, v });
+      };
+      box.appendChild(btn);
+    });
+    d.showModal();
+    const first = d.querySelector('input,textarea');
+    if (first) first.focus();
+  });
+}
+
+// ===== Phát âm (giọng đọc có sẵn trên máy, chạy offline) =====
+function speak(text) {
+  if (!('speechSynthesis' in window)) { toast('Máy không hỗ trợ phát âm'); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  const voices = speechSynthesis.getVoices();
+  const v = voices.find(x => x.lang === 'en-US') || voices.find(x => /^en/.test(x.lang));
+  if (v) u.voice = v;
+  u.rate = 0.9;
+  speechSynthesis.speak(u);
+}
+
+// ===== Điều hướng =====
+window.addEventListener('hashchange', render);
+function render() {
+  const [page, id] = location.hash.slice(1).split('/');
+  const t = id && topicById(id);
+  if (page === 't' && t) renderTopic(t);
+  else if (page === 's' && t) renderStudy(t);
+  else renderHome();
+  window.scrollTo(0, 0);
+}
+
+// ===== Màn hình chính: danh sách chủ đề =====
+function renderHome() {
+  st = null;
+  setBar('Từ vựng', null, [['＋', 'Thêm chủ đề', addTopic]]);
+  const total = db.topics.reduce((s, t) => s + t.words.length, 0);
+  app.innerHTML = `
+    ${db.topics.length ? `<ul class="list">${db.topics.map(t => {
+      const n = t.words.filter(w => w.learned).length;
+      return `<li><a class="item" href="#t/${t.id}">
+        <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} từ · đã thuộc ${n}</small></div>
+        <span class="chev">›</span></a></li>`;
+    }).join('')}</ul>` : '<p class="empty">Chưa có chủ đề nào.</p>'}
+    <button class="btn primary block" id="addT">＋ Thêm chủ đề</button>
+    <section class="backup">
+      <h3>Sao lưu dữ liệu</h3>
+      <p class="muted">Dữ liệu chỉ lưu trên máy này. Nên xuất file sao lưu thường xuyên.</p>
+      <div class="row">
+        <button class="btn grow" id="exp">Xuất file</button>
+        <button class="btn grow" id="imp">Nhập file</button>
+      </div>
+      <p class="muted">Tổng: ${db.topics.length} chủ đề, ${total} từ</p>
+    </section>`;
+  $('#addT').onclick = addTopic;
+  $('#exp').onclick = exportData;
+  $('#imp').onclick = () => $('#fileIn').click();
+}
+
+async function addTopic() {
+  const r = await ask({
+    title: 'Thêm chủ đề',
+    fields: [{ name: 'name', label: 'Tên chủ đề', required: 1, ph: 'Ví dụ: Đồ ăn, Du lịch…' }],
+    buttons: [{ label: 'Hủy', value: null }, { label: 'Thêm', value: 'ok', check: 1, cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  const t = { id: uid(), name: r.v.name, words: [] };
+  db.topics.push(t);
+  save();
+  location.hash = 't/' + t.id;
+}
+
+// ===== Màn hình chủ đề: danh sách từ =====
+function renderTopic(t) {
+  st = null;
+  setBar(t.name, '', [['⋯', 'Tùy chọn chủ đề', () => topicMenu(t)]]);
+  app.innerHTML = `
+    <div class="row">
+      <button class="btn primary grow" id="study" ${t.words.length ? '' : 'disabled'}>▶ Học flashcard</button>
+      <button class="btn grow" id="addW">＋ Thêm từ</button>
+    </div>
+    ${t.words.length > 5 ? '<input type="search" id="q" placeholder="Tìm từ…">' : ''}
+    <ul class="list" id="words"></ul>`;
+  $('#study').onclick = () => { location.hash = 's/' + t.id; };
+  $('#addW').onclick = () => editWord(t, null);
+  const q = $('#q');
+  if (q) q.oninput = () => drawWords(t, q.value);
+  $('#words').onclick = e => {
+    const say = e.target.closest('[data-say]');
+    const learn = e.target.closest('[data-learn]');
+    const edit = e.target.closest('[data-edit]');
+    if (say) speak(say.dataset.say);
+    else if (learn) {
+      const w = t.words.find(x => x.id === learn.dataset.learn);
+      w.learned = !w.learned;
+      save();
+      learn.classList.toggle('on', w.learned);
+    } else if (edit) editWord(t, t.words.find(x => x.id === edit.dataset.edit));
+  };
+  drawWords(t, '');
+}
+
+function drawWords(t, q) {
+  q = q.trim().toLowerCase();
+  const ws = t.words.filter(w => !q || (w.en + ' ' + w.vi).toLowerCase().includes(q));
+  $('#words').innerHTML = ws.length ? ws.map(w => `
+    <li class="item">
+      <button class="icon" data-say="${esc(w.en)}" aria-label="Phát âm">🔊</button>
+      <div class="grow" data-edit="${w.id}">
+        <b>${esc(w.en)}</b> ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
+        <div>${esc(w.vi)}</div>
+        ${w.ex ? `<small class="ex">${esc(w.ex)}</small>` : ''}
+      </div>
+      <button class="icon chk ${w.learned ? 'on' : ''}" data-learn="${w.id}" aria-label="Đã thuộc">✓</button>
+    </li>`).join('')
+    : `<li class="empty">${t.words.length ? 'Không tìm thấy.' : 'Chưa có từ nào. Bấm “＋ Thêm từ”.'}</li>`;
+}
+
+async function topicMenu(t) {
+  const r = await ask({
+    title: t.name,
+    buttons: [{ label: 'Đóng', value: null }, { label: 'Xóa chủ đề', value: 'del', cls: 'danger' }, { label: 'Đổi tên', value: 'ren', cls: 'primary' }]
+  });
+  if (r.btn === 'ren') {
+    const r2 = await ask({
+      title: 'Đổi tên chủ đề',
+      fields: [{ name: 'name', label: 'Tên chủ đề', required: 1, value: t.name }],
+      buttons: [{ label: 'Hủy', value: null }, { label: 'Lưu', value: 'ok', check: 1, cls: 'primary' }]
+    });
+    if (r2.btn) { t.name = r2.v.name; save(); render(); }
+  } else if (r.btn === 'del') {
+    if (confirm(`Xóa chủ đề "${t.name}" và ${t.words.length} từ bên trong?`)) {
+      db.topics = db.topics.filter(x => x !== t);
+      save();
+      location.hash = '';
+    }
+  }
+}
+
+async function editWord(t, w) {
+  const isNew = !w;
+  const r = await ask({
+    title: isNew ? 'Thêm từ mới' : 'Sửa từ',
+    fields: [
+      { name: 'en', label: 'Từ tiếng Anh', required: 1, en: 1, value: w && w.en },
+      { name: 'ipa', label: 'Phiên âm', en: 1, ph: '/ˈæp.əl/', value: w && w.ipa },
+      { name: 'vi', label: 'Nghĩa tiếng Việt', required: 1, value: w && w.vi },
+      { name: 'ex', label: 'Câu ví dụ', multi: 1, en: 1, value: w && w.ex }
+    ],
+    buttons: isNew
+      ? [{ label: 'Hủy', value: null }, { label: 'Lưu & thêm tiếp', value: 'next', check: 1 }, { label: 'Lưu', value: 'save', check: 1, cls: 'primary' }]
+      : [{ label: 'Xóa', value: 'del', cls: 'danger' }, { label: 'Hủy', value: null }, { label: 'Lưu', value: 'save', check: 1, cls: 'primary' }]
+  });
+  if (r.btn === 'del') {
+    if (confirm(`Xóa từ "${w.en}"?`)) {
+      t.words = t.words.filter(x => x !== w);
+      save();
+      render();
+    }
+    return;
+  }
+  if (!r.btn) return;
+  if (isNew) {
+    const dup = t.words.some(x => x.en.toLowerCase() === r.v.en.toLowerCase());
+    if (dup && !confirm(`Từ "${r.v.en}" đã có trong chủ đề này. Vẫn thêm?`)) return;
+    t.words.unshift(Object.assign({ id: uid(), learned: false }, r.v));
+    toast('Đã thêm: ' + r.v.en);
+  } else {
+    Object.assign(w, r.v);
+  }
+  save();
+  render();
+  if (r.btn === 'next') editWord(t, null);
+}
+
+// ===== Học flashcard =====
+function buildDeck(t) {
+  const ids = t.words.filter(w => !opt.onlyNew || !w.learned).map(w => w.id);
+  if (opt.shuffle) {
+    for (let i = ids.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [ids[i], ids[j]] = [ids[j], ids[i]];
+    }
+  }
+  st = { tid: t.id, ids, i: 0, flip: false };
+}
+
+function renderStudy(t) {
+  setBar('Học: ' + t.name, 't/' + t.id, []);
+  if (!st || st.tid !== t.id) buildDeck(t);
+  st.ids = st.ids.filter(id => t.words.some(w => w.id === id)); // bỏ từ đã bị xóa
+  const opts = `
+    <div class="opts">
+      <button class="chip" data-o="dir">${opt.dir === 'en' ? 'Anh → Việt' : 'Việt → Anh'}</button>
+      <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Trộn thứ tự</button>
+      <button class="chip ${opt.onlyNew ? 'on' : ''}" data-o="onlyNew">Chỉ từ chưa thuộc</button>
+    </div>`;
+  const n = st.ids.length;
+  let body;
+  if (!n) {
+    body = `<div class="done"><div class="big">🎉</div><p>${opt.onlyNew ? 'Bạn đã thuộc hết các từ trong chủ đề này!' : 'Chủ đề chưa có từ nào.'}</p></div>`;
+  } else if (st.i >= n) {
+    body = `<div class="done"><div class="big">🎉 Xong!</div><p>Bạn đã xem hết ${n} thẻ.</p>
+      <button class="btn primary" id="again">Học lại</button></div>`;
+  } else {
+    const w = t.words.find(x => x.id === st.ids[st.i]);
+    const enHtml = `<div class="big">${esc(w.en)}</div>${w.ipa ? `<div class="ipa">${esc(w.ipa)}</div>` : ''}`;
+    const viHtml = `<div class="${opt.dir === 'vi' ? 'big' : ''}">${esc(w.vi)}</div>`;
+    const front = opt.dir === 'en' ? enHtml : viHtml;
+    const back = (opt.dir === 'en' ? viHtml : enHtml) + (w.ex ? `<div class="ex">${esc(w.ex)}</div>` : '');
+    body = `
+      <p class="prog">${st.i + 1} / ${n}</p>
+      <div class="card" id="card">
+        ${front}
+        ${st.flip ? `<div class="back">${back}</div>` : '<div class="hint">Chạm vào thẻ để xem nghĩa</div>'}
+      </div>
+      <div class="row">
+        <button class="btn grow" id="say">🔊 Nghe</button>
+        <button class="btn grow ${w.learned ? 'primary' : ''}" id="learn">${w.learned ? '✓ Đã thuộc' : '○ Đã thuộc'}</button>
+      </div>
+      <div class="row">
+        <button class="btn grow" id="prev" ${st.i ? '' : 'disabled'}>◀ Trước</button>
+        <button class="btn grow primary" id="next">Tiếp ▶</button>
+      </div>
+      <p class="muted" style="text-align:center">Có thể vuốt trái / phải trên thẻ để chuyển từ</p>`;
+    setTimeout(() => {
+      const card = $('#card');
+      card.onclick = () => { st.flip = !st.flip; renderStudy(t); };
+      let x0 = null;
+      card.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+      card.addEventListener('touchend', e => {
+        if (x0 == null) return;
+        const dx = e.changedTouches[0].clientX - x0;
+        x0 = null;
+        if (dx < -50) go(1);
+        else if (dx > 50 && st.i > 0) go(-1);
+      });
+      $('#say').onclick = () => speak(w.en);
+      $('#learn').onclick = () => { w.learned = !w.learned; save(); renderStudy(t); };
+      $('#prev').onclick = () => go(-1);
+      $('#next').onclick = () => go(1);
+    });
+  }
+  app.innerHTML = opts + body;
+  app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
+    const k = b.dataset.o;
+    opt[k] = k === 'dir' ? (opt.dir === 'en' ? 'vi' : 'en') : !opt[k];
+    saveOpt();
+    if (k === 'dir') st.flip = false; else buildDeck(t);
+    renderStudy(t);
+  });
+  const again = $('#again');
+  if (again) again.onclick = () => { buildDeck(t); renderStudy(t); };
+
+  function go(d) { st.i += d; st.flip = false; renderStudy(t); }
+}
+
+// ===== Sao lưu / khôi phục =====
+async function exportData() {
+  const name = 'tuvung-' + new Date().toISOString().slice(0, 10) + '.json';
+  const text = JSON.stringify(db, null, 1);
+  const blob = new Blob([text], { type: 'application/json' });
+  try {
+    const file = new File([blob], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: name });
+      return;
+    }
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function normalize(d) {
+  return (d.topics || []).filter(t => t && t.name).map(t => ({
+    id: uid(),
+    name: String(t.name),
+    words: (Array.isArray(t.words) ? t.words : []).filter(w => w && w.en).map(w => ({
+      id: uid(), en: String(w.en), ipa: String(w.ipa || ''), vi: String(w.vi || ''), ex: String(w.ex || ''), learned: !!w.learned
+    }))
+  }));
+}
+
+$('#fileIn').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  let topics;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!Array.isArray(d.topics)) throw new Error();
+    topics = normalize(d);
+  } catch (err) {
+    toast('File không đúng định dạng');
+    return;
+  }
+  const r = await ask({
+    title: 'Nhập dữ liệu',
+    msg: `File có ${topics.length} chủ đề, ${topics.reduce((s, t) => s + t.words.length, 0)} từ. Bạn muốn:`,
+    buttons: [{ label: 'Hủy', value: null }, { label: 'Thay thế toàn bộ', value: 'rep', cls: 'danger' }, { label: 'Gộp vào', value: 'merge', cls: 'primary' }]
+  });
+  if (r.btn === 'rep') {
+    if (!confirm('Toàn bộ dữ liệu hiện tại sẽ bị thay bằng dữ liệu trong file. Tiếp tục?')) return;
+    db = { topics };
+  } else if (r.btn === 'merge') {
+    topics.forEach(nt => {
+      const t = db.topics.find(x => x.name.toLowerCase() === nt.name.toLowerCase());
+      if (!t) { db.topics.push(nt); return; }
+      nt.words.forEach(w => {
+        if (!t.words.some(x => x.en.toLowerCase() === w.en.toLowerCase())) t.words.push(w);
+      });
+    });
+  } else return;
+  save();
+  toast('Đã nhập dữ liệu');
+  location.hash = '';
+  render();
+};
+
+// ===== Khởi động =====
+save();
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  navigator.serviceWorker.register('./sw.js');
+}
+render();
+</script>
+</body>
+</html>
