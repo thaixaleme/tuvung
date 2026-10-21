@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Từ vựng">
+<meta name="apple-mobile-web-app-title" content="Vocabulary">
 <meta name="theme-color" content="#2563eb">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<title>Từ vựng</title>
+<title>Vocabulary</title>
 <style>
 :root{--bg:#f4f6fb;--card:#fff;--text:#1a1d24;--muted:#6b7280;--line:#e3e7ef;--pri:#2563eb;--danger:#dc2626;--ok:#16a34a;--chip:#e8eefc}
 @media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#1a1d24;--text:#eceef3;--muted:#9aa3b2;--line:#2a2f3a;--pri:#3b82f6;--danger:#f87171;--ok:#22c55e;--chip:#1f2a44}}
@@ -28,6 +28,7 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px;font-weight:600}
 .btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
 .btn.danger{color:var(--danger)}
+.btn.small{padding:7px 12px;font-size:14px}
 .btn:disabled{opacity:.45}
 .block{display:block;width:100%;margin:14px 0}
 .row{display:flex;gap:10px;margin:10px 0}
@@ -37,6 +38,11 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .list>li:last-child{border-bottom:0}
 .item{display:flex;align-items:center;gap:8px;padding:12px 12px;color:inherit;text-decoration:none}
 .item small{display:block;color:var(--muted);font-size:14px}
+.topic{gap:14px;padding:10px 12px}
+.thumb{flex:none;width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:#fff;object-fit:cover;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#2563eb;font-weight:700;font-size:18px;letter-spacing:.5px}
+.thumb.big{width:88px;height:88px;font-size:26px}
+.imgpick{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
+.imgpick .btns{display:flex;flex-direction:column;gap:8px}
 .chev{color:var(--muted);font-size:22px}
 .ipa{color:var(--muted);font-size:14px}
 .ex{font-style:italic}
@@ -45,7 +51,8 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .empty{text-align:center;color:var(--muted);padding:30px 10px;list-style:none}
 input,textarea{display:block;width:100%;font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);margin-top:4px}
 input[type=search]{margin:4px 0 0}
-label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
+label,.label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
+.label{margin-bottom:0}
 .bad{border-color:var(--danger)}
 dialog{border:0;border-radius:16px;padding:18px;width:min(92vw,440px);margin:calc(env(safe-area-inset-top) + 16px) auto auto;background:var(--card);color:var(--text)}
 dialog::backdrop{background:rgba(0,0,0,.45)}
@@ -71,8 +78,8 @@ dialog h2{margin:0 0 6px;font-size:19px}
 </head>
 <body>
 <header>
-  <button id="back" class="icon" hidden aria-label="Quay lại">‹</button>
-  <h1 id="title">Từ vựng</h1>
+  <button id="back" class="icon" hidden aria-label="Back">‹</button>
+  <h1 id="title">Vocabulary</h1>
   <div id="actions"></div>
 </header>
 <main id="app"></main>
@@ -89,6 +96,7 @@ dialog h2{margin:0 0 6px;font-size:19px}
 'use strict';
 const KEY = 'tuvung-data-v1';
 const OPT_KEY = 'tuvung-study-v1';
+const IMG_SIZE = 200; // kích thước ảnh chủ đề sau khi thu nhỏ (px)
 const $ = s => document.querySelector(s);
 const app = $('#app');
 
@@ -104,7 +112,7 @@ function load() {
   const d = readJSON(KEY);
   if (d && Array.isArray(d.topics)) return d;
   // Lần đầu mở: tạo 1 chủ đề ví dụ (có thể xóa)
-  return { topics: [{ id: uid(), name: 'Gia đình (ví dụ)', words: [
+  return { topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
     { id: uid(), en: 'father', ipa: '/ˈfɑː.ðər/', vi: 'bố, cha', ex: 'My father is a teacher.', learned: false },
     { id: uid(), en: 'mother', ipa: '/ˈmʌð.ər/', vi: 'mẹ', ex: 'My mother cooks very well.', learned: false },
     { id: uid(), en: 'brother', ipa: '/ˈbrʌð.ər/', vi: 'anh trai, em trai', ex: 'I have one brother.', learned: false }
@@ -112,7 +120,7 @@ function load() {
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); }
-  catch (e) { toast('Không lưu được dữ liệu!'); }
+  catch (e) { toast('Could not save data (storage may be full)'); }
 }
 function saveOpt() {
   try { localStorage.setItem(OPT_KEY, JSON.stringify(opt)); } catch (e) {}
@@ -121,6 +129,35 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function topicById(id) { return db.topics.find(t => t.id === id); }
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ===== Ảnh chủ đề =====
+// Không có ảnh: hiện chữ "EL" trên nền trắng
+function thumbHtml(img, cls) {
+  return img
+    ? `<img class="thumb ${cls || ''}" src="${esc(img)}" alt="">`
+    : `<span class="thumb ${cls || ''}">EL</span>`;
+}
+
+// Cắt phần vuông ở giữa ảnh, thu nhỏ còn IMG_SIZE x IMG_SIZE, trả về JPEG (data URL)
+function resizeImage(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.naturalWidth, img.naturalHeight);
+      const c = document.createElement('canvas');
+      c.width = c.height = IMG_SIZE;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, IMG_SIZE, IMG_SIZE);
+      ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, IMG_SIZE, IMG_SIZE);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
+    img.src = url;
+  });
 }
 
 // ===== Tiện ích giao diện =====
@@ -151,13 +188,27 @@ function setBar(title, backHash, actions) {
 }
 
 // Hộp thoại chung: trả về Promise {btn, v}
+// fields: {name, label, required, en, multi, ph, value, image}  (image: ô chọn ảnh chủ đề)
 function ask({ title, msg, fields = [], buttons }) {
   return new Promise(resolve => {
     const d = $('#dlg');
+    const imgs = {}; // giá trị ảnh hiện tại của các ô chọn ảnh
     const finish = r => { d.oncancel = null; d.close(); resolve(r); };
     d.oncancel = e => { e.preventDefault(); finish({ btn: null, v: {} }); };
     $('#dlgTitle').textContent = title;
     $('#dlgBody').innerHTML = (msg ? `<p>${esc(msg)}</p>` : '') + fields.map(f => {
+      if (f.image) {
+        imgs[f.name] = f.value || '';
+        return `<div class="label">${esc(f.label)}</div>
+          <div class="imgpick" data-img="${f.name}">
+            <span data-prev>${thumbHtml(imgs[f.name], 'big')}</span>
+            <div class="btns">
+              <button type="button" class="btn small" data-pick>Choose image</button>
+              <button type="button" class="btn small danger" data-rm ${imgs[f.name] ? '' : 'hidden'}>Remove image</button>
+            </div>
+            <input type="file" accept="image/*" hidden>
+          </div>`;
+      }
       const attr = `name="${f.name}" placeholder="${esc(f.ph || '')}" autocomplete="off"` +
         (f.en ? ' autocapitalize="none" spellcheck="false" lang="en"' : '');
       const input = f.multi
@@ -165,6 +216,24 @@ function ask({ title, msg, fields = [], buttons }) {
         : `<input ${attr} value="${esc(f.value)}">`;
       return `<label>${esc(f.label)}${f.required ? ' *' : ''}${input}</label>`;
     }).join('');
+    d.querySelectorAll('[data-img]').forEach(box => {
+      const name = box.dataset.img;
+      const file = box.querySelector('input[type=file]');
+      const rm = box.querySelector('[data-rm]');
+      const show = () => {
+        box.querySelector('[data-prev]').innerHTML = thumbHtml(imgs[name], 'big');
+        rm.hidden = !imgs[name];
+      };
+      box.querySelector('[data-pick]').onclick = () => file.click();
+      rm.onclick = () => { imgs[name] = ''; show(); };
+      file.onchange = async () => {
+        const f = file.files[0];
+        file.value = '';
+        if (!f) return;
+        try { imgs[name] = await resizeImage(f); show(); }
+        catch (e) { toast('Could not read this image'); }
+      };
+    });
     const box = $('#dlgBtns');
     box.innerHTML = '';
     buttons.forEach(b => {
@@ -176,25 +245,26 @@ function ask({ title, msg, fields = [], buttons }) {
         const v = {};
         let bad = null;
         fields.forEach(f => {
+          if (f.image) { v[f.name] = imgs[f.name]; return; }
           const el = d.querySelector(`[name="${f.name}"]`);
           v[f.name] = el.value.trim();
           el.classList.toggle('bad', !!(b.check && f.required && !v[f.name]));
           if (b.check && f.required && !v[f.name] && !bad) bad = el;
         });
-        if (bad) { bad.focus(); toast('Hãy nhập các mục có dấu *'); return; }
+        if (bad) { bad.focus(); toast('Please fill in the fields marked *'); return; }
         finish({ btn: b.value, v });
       };
       box.appendChild(btn);
     });
     d.showModal();
-    const first = d.querySelector('input,textarea');
+    const first = d.querySelector('input:not([type=file]),textarea');
     if (first) first.focus();
   });
 }
 
 // ===== Phát âm (giọng đọc có sẵn trên máy, chạy offline) =====
 function speak(text) {
-  if (!('speechSynthesis' in window)) { toast('Máy không hỗ trợ phát âm'); return; }
+  if (!('speechSynthesis' in window)) { toast('Speech is not supported on this device'); return; }
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'en-US';
@@ -219,38 +289,46 @@ function render() {
 // ===== Màn hình chính: danh sách chủ đề =====
 function renderHome() {
   st = null;
-  setBar('Từ vựng', null, [['＋', 'Thêm chủ đề', addTopic]]);
+  setBar('Vocabulary', null, [['＋', 'Add topic', addTopic]]);
   const total = db.topics.reduce((s, t) => s + t.words.length, 0);
   app.innerHTML = `
     ${db.topics.length ? `<ul class="list">${db.topics.map(t => {
       const n = t.words.filter(w => w.learned).length;
-      return `<li><a class="item" href="#t/${t.id}">
-        <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} từ · đã thuộc ${n}</small></div>
+      return `<li><a class="item topic" href="#t/${t.id}">
+        ${thumbHtml(t.img)}
+        <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} words · ${n} learned</small></div>
         <span class="chev">›</span></a></li>`;
-    }).join('')}</ul>` : '<p class="empty">Chưa có chủ đề nào.</p>'}
-    <button class="btn primary block" id="addT">＋ Thêm chủ đề</button>
+    }).join('')}</ul>` : '<p class="empty">No topics yet.</p>'}
+    <button class="btn primary block" id="addT">＋ Add topic</button>
     <section class="backup">
-      <h3>Sao lưu dữ liệu</h3>
-      <p class="muted">Dữ liệu chỉ lưu trên máy này. Nên xuất file sao lưu thường xuyên.</p>
+      <h3>Backup</h3>
+      <p class="muted">Data is stored only on this device. Export a backup file regularly.</p>
       <div class="row">
-        <button class="btn grow" id="exp">Xuất file</button>
-        <button class="btn grow" id="imp">Nhập file</button>
+        <button class="btn grow" id="exp">Export</button>
+        <button class="btn grow" id="imp">Import</button>
       </div>
-      <p class="muted">Tổng: ${db.topics.length} chủ đề, ${total} từ</p>
+      <p class="muted">Total: ${db.topics.length} topics, ${total} words</p>
     </section>`;
   $('#addT').onclick = addTopic;
   $('#exp').onclick = exportData;
   $('#imp').onclick = () => $('#fileIn').click();
 }
 
+function topicFields(t) {
+  return [
+    { name: 'name', label: 'Topic name', required: 1, ph: 'e.g. Food, Travel…', value: t && t.name },
+    { name: 'img', label: 'Image', image: 1, value: t && t.img }
+  ];
+}
+
 async function addTopic() {
   const r = await ask({
-    title: 'Thêm chủ đề',
-    fields: [{ name: 'name', label: 'Tên chủ đề', required: 1, ph: 'Ví dụ: Đồ ăn, Du lịch…' }],
-    buttons: [{ label: 'Hủy', value: null }, { label: 'Thêm', value: 'ok', check: 1, cls: 'primary' }]
+    title: 'Add topic',
+    fields: topicFields(null),
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Add', value: 'ok', check: 1, cls: 'primary' }]
   });
   if (!r.btn) return;
-  const t = { id: uid(), name: r.v.name, words: [] };
+  const t = { id: uid(), name: r.v.name, img: r.v.img, words: [] };
   db.topics.push(t);
   save();
   location.hash = 't/' + t.id;
@@ -259,13 +337,13 @@ async function addTopic() {
 // ===== Màn hình chủ đề: danh sách từ =====
 function renderTopic(t) {
   st = null;
-  setBar(t.name, '', [['⋯', 'Tùy chọn chủ đề', () => topicMenu(t)]]);
+  setBar(t.name, '', [['⋯', 'Topic options', () => topicMenu(t)]]);
   app.innerHTML = `
     <div class="row">
-      <button class="btn primary grow" id="study" ${t.words.length ? '' : 'disabled'}>▶ Học flashcard</button>
-      <button class="btn grow" id="addW">＋ Thêm từ</button>
+      <button class="btn primary grow" id="study" ${t.words.length ? '' : 'disabled'}>▶ Study</button>
+      <button class="btn grow" id="addW">＋ Add word</button>
     </div>
-    ${t.words.length > 5 ? '<input type="search" id="q" placeholder="Tìm từ…">' : ''}
+    ${t.words.length > 5 ? '<input type="search" id="q" placeholder="Search…">' : ''}
     <ul class="list" id="words"></ul>`;
   $('#study').onclick = () => { location.hash = 's/' + t.id; };
   $('#addW').onclick = () => editWord(t, null);
@@ -291,31 +369,31 @@ function drawWords(t, q) {
   const ws = t.words.filter(w => !q || (w.en + ' ' + w.vi).toLowerCase().includes(q));
   $('#words').innerHTML = ws.length ? ws.map(w => `
     <li class="item">
-      <button class="icon" data-say="${esc(w.en)}" aria-label="Phát âm">🔊</button>
+      <button class="icon" data-say="${esc(w.en)}" aria-label="Pronounce">🔊</button>
       <div class="grow" data-edit="${w.id}">
         <b>${esc(w.en)}</b> ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
         <div>${esc(w.vi)}</div>
         ${w.ex ? `<small class="ex">${esc(w.ex)}</small>` : ''}
       </div>
-      <button class="icon chk ${w.learned ? 'on' : ''}" data-learn="${w.id}" aria-label="Đã thuộc">✓</button>
+      <button class="icon chk ${w.learned ? 'on' : ''}" data-learn="${w.id}" aria-label="Learned">✓</button>
     </li>`).join('')
-    : `<li class="empty">${t.words.length ? 'Không tìm thấy.' : 'Chưa có từ nào. Bấm “＋ Thêm từ”.'}</li>`;
+    : `<li class="empty">${t.words.length ? 'Not found.' : 'No words yet. Tap “＋ Add word”.'}</li>`;
 }
 
 async function topicMenu(t) {
   const r = await ask({
     title: t.name,
-    buttons: [{ label: 'Đóng', value: null }, { label: 'Xóa chủ đề', value: 'del', cls: 'danger' }, { label: 'Đổi tên', value: 'ren', cls: 'primary' }]
+    buttons: [{ label: 'Close', value: null }, { label: 'Delete topic', value: 'del', cls: 'danger' }, { label: 'Edit', value: 'edit', cls: 'primary' }]
   });
-  if (r.btn === 'ren') {
+  if (r.btn === 'edit') {
     const r2 = await ask({
-      title: 'Đổi tên chủ đề',
-      fields: [{ name: 'name', label: 'Tên chủ đề', required: 1, value: t.name }],
-      buttons: [{ label: 'Hủy', value: null }, { label: 'Lưu', value: 'ok', check: 1, cls: 'primary' }]
+      title: 'Edit topic',
+      fields: topicFields(t),
+      buttons: [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', check: 1, cls: 'primary' }]
     });
-    if (r2.btn) { t.name = r2.v.name; save(); render(); }
+    if (r2.btn) { t.name = r2.v.name; t.img = r2.v.img; save(); render(); }
   } else if (r.btn === 'del') {
-    if (confirm(`Xóa chủ đề "${t.name}" và ${t.words.length} từ bên trong?`)) {
+    if (confirm(`Delete topic "${t.name}" and its ${t.words.length} words?`)) {
       db.topics = db.topics.filter(x => x !== t);
       save();
       location.hash = '';
@@ -326,19 +404,19 @@ async function topicMenu(t) {
 async function editWord(t, w) {
   const isNew = !w;
   const r = await ask({
-    title: isNew ? 'Thêm từ mới' : 'Sửa từ',
+    title: isNew ? 'Add word' : 'Edit word',
     fields: [
-      { name: 'en', label: 'Từ tiếng Anh', required: 1, en: 1, value: w && w.en },
-      { name: 'ipa', label: 'Phiên âm', en: 1, ph: '/ˈæp.əl/', value: w && w.ipa },
-      { name: 'vi', label: 'Nghĩa tiếng Việt', required: 1, value: w && w.vi },
-      { name: 'ex', label: 'Câu ví dụ', multi: 1, en: 1, value: w && w.ex }
+      { name: 'en', label: 'English word', required: 1, en: 1, value: w && w.en },
+      { name: 'ipa', label: 'Pronunciation', en: 1, ph: '/ˈæp.əl/', value: w && w.ipa },
+      { name: 'vi', label: 'Meaning', required: 1, value: w && w.vi },
+      { name: 'ex', label: 'Example', multi: 1, en: 1, value: w && w.ex }
     ],
     buttons: isNew
-      ? [{ label: 'Hủy', value: null }, { label: 'Lưu & thêm tiếp', value: 'next', check: 1 }, { label: 'Lưu', value: 'save', check: 1, cls: 'primary' }]
-      : [{ label: 'Xóa', value: 'del', cls: 'danger' }, { label: 'Hủy', value: null }, { label: 'Lưu', value: 'save', check: 1, cls: 'primary' }]
+      ? [{ label: 'Cancel', value: null }, { label: 'Save & add next', value: 'next', check: 1 }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
+      : [{ label: 'Delete', value: 'del', cls: 'danger' }, { label: 'Cancel', value: null }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
   });
   if (r.btn === 'del') {
-    if (confirm(`Xóa từ "${w.en}"?`)) {
+    if (confirm(`Delete "${w.en}"?`)) {
       t.words = t.words.filter(x => x !== w);
       save();
       render();
@@ -348,9 +426,9 @@ async function editWord(t, w) {
   if (!r.btn) return;
   if (isNew) {
     const dup = t.words.some(x => x.en.toLowerCase() === r.v.en.toLowerCase());
-    if (dup && !confirm(`Từ "${r.v.en}" đã có trong chủ đề này. Vẫn thêm?`)) return;
+    if (dup && !confirm(`"${r.v.en}" already exists in this topic. Add anyway?`)) return;
     t.words.unshift(Object.assign({ id: uid(), learned: false }, r.v));
-    toast('Đã thêm: ' + r.v.en);
+    toast('Added: ' + r.v.en);
   } else {
     Object.assign(w, r.v);
   }
@@ -372,22 +450,22 @@ function buildDeck(t) {
 }
 
 function renderStudy(t) {
-  setBar('Học: ' + t.name, 't/' + t.id, []);
+  setBar('Study: ' + t.name, 't/' + t.id, []);
   if (!st || st.tid !== t.id) buildDeck(t);
   st.ids = st.ids.filter(id => t.words.some(w => w.id === id)); // bỏ từ đã bị xóa
   const opts = `
     <div class="opts">
-      <button class="chip" data-o="dir">${opt.dir === 'en' ? 'Anh → Việt' : 'Việt → Anh'}</button>
-      <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Trộn thứ tự</button>
-      <button class="chip ${opt.onlyNew ? 'on' : ''}" data-o="onlyNew">Chỉ từ chưa thuộc</button>
+      <button class="chip" data-o="dir">${opt.dir === 'en' ? 'EN → Meaning' : 'Meaning → EN'}</button>
+      <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Shuffle</button>
+      <button class="chip ${opt.onlyNew ? 'on' : ''}" data-o="onlyNew">Not learned only</button>
     </div>`;
   const n = st.ids.length;
   let body;
   if (!n) {
-    body = `<div class="done"><div class="big">🎉</div><p>${opt.onlyNew ? 'Bạn đã thuộc hết các từ trong chủ đề này!' : 'Chủ đề chưa có từ nào.'}</p></div>`;
+    body = `<div class="done"><div class="big">🎉</div><p>${opt.onlyNew ? 'You have learned all the words in this topic!' : 'This topic has no words yet.'}</p></div>`;
   } else if (st.i >= n) {
-    body = `<div class="done"><div class="big">🎉 Xong!</div><p>Bạn đã xem hết ${n} thẻ.</p>
-      <button class="btn primary" id="again">Học lại</button></div>`;
+    body = `<div class="done"><div class="big">🎉 Done!</div><p>You have gone through all ${n} cards.</p>
+      <button class="btn primary" id="again">Study again</button></div>`;
   } else {
     const w = t.words.find(x => x.id === st.ids[st.i]);
     const enHtml = `<div class="big">${esc(w.en)}</div>${w.ipa ? `<div class="ipa">${esc(w.ipa)}</div>` : ''}`;
@@ -398,17 +476,17 @@ function renderStudy(t) {
       <p class="prog">${st.i + 1} / ${n}</p>
       <div class="card" id="card">
         ${front}
-        ${st.flip ? `<div class="back">${back}</div>` : '<div class="hint">Chạm vào thẻ để xem nghĩa</div>'}
+        ${st.flip ? `<div class="back">${back}</div>` : '<div class="hint">Tap the card to see the answer</div>'}
       </div>
       <div class="row">
-        <button class="btn grow" id="say">🔊 Nghe</button>
-        <button class="btn grow ${w.learned ? 'primary' : ''}" id="learn">${w.learned ? '✓ Đã thuộc' : '○ Đã thuộc'}</button>
+        <button class="btn grow" id="say">🔊 Listen</button>
+        <button class="btn grow ${w.learned ? 'primary' : ''}" id="learn">${w.learned ? '✓ Learned' : '○ Learned'}</button>
       </div>
       <div class="row">
-        <button class="btn grow" id="prev" ${st.i ? '' : 'disabled'}>◀ Trước</button>
-        <button class="btn grow primary" id="next">Tiếp ▶</button>
+        <button class="btn grow" id="prev" ${st.i ? '' : 'disabled'}>◀ Prev</button>
+        <button class="btn grow primary" id="next">Next ▶</button>
       </div>
-      <p class="muted" style="text-align:center">Có thể vuốt trái / phải trên thẻ để chuyển từ</p>`;
+      <p class="muted" style="text-align:center">Swipe left / right on the card to change words</p>`;
     setTimeout(() => {
       const card = $('#card');
       card.onclick = () => { st.flip = !st.flip; renderStudy(t); };
@@ -468,6 +546,7 @@ function normalize(d) {
   return (d.topics || []).filter(t => t && t.name).map(t => ({
     id: uid(),
     name: String(t.name),
+    img: /^data:image\//.test(t.img) ? t.img : '',
     words: (Array.isArray(t.words) ? t.words : []).filter(w => w && w.en).map(w => ({
       id: uid(), en: String(w.en), ipa: String(w.ipa || ''), vi: String(w.vi || ''), ex: String(w.ex || ''), learned: !!w.learned
     }))
@@ -484,28 +563,29 @@ $('#fileIn').onchange = async e => {
     if (!Array.isArray(d.topics)) throw new Error();
     topics = normalize(d);
   } catch (err) {
-    toast('File không đúng định dạng');
+    toast('Invalid file');
     return;
   }
   const r = await ask({
-    title: 'Nhập dữ liệu',
-    msg: `File có ${topics.length} chủ đề, ${topics.reduce((s, t) => s + t.words.length, 0)} từ. Bạn muốn:`,
-    buttons: [{ label: 'Hủy', value: null }, { label: 'Thay thế toàn bộ', value: 'rep', cls: 'danger' }, { label: 'Gộp vào', value: 'merge', cls: 'primary' }]
+    title: 'Import data',
+    msg: `The file has ${topics.length} topics, ${topics.reduce((s, t) => s + t.words.length, 0)} words. What do you want to do?`,
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Replace all', value: 'rep', cls: 'danger' }, { label: 'Merge', value: 'merge', cls: 'primary' }]
   });
   if (r.btn === 'rep') {
-    if (!confirm('Toàn bộ dữ liệu hiện tại sẽ bị thay bằng dữ liệu trong file. Tiếp tục?')) return;
+    if (!confirm('All current data will be replaced by the data in the file. Continue?')) return;
     db = { topics };
   } else if (r.btn === 'merge') {
     topics.forEach(nt => {
       const t = db.topics.find(x => x.name.toLowerCase() === nt.name.toLowerCase());
       if (!t) { db.topics.push(nt); return; }
+      if (!t.img && nt.img) t.img = nt.img;
       nt.words.forEach(w => {
         if (!t.words.some(x => x.en.toLowerCase() === w.en.toLowerCase())) t.words.push(w);
       });
     });
   } else return;
   save();
-  toast('Đã nhập dữ liệu');
+  toast('Data imported');
   location.hash = '';
   render();
 };

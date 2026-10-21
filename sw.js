@@ -1,6 +1,6 @@
 // Service Worker: lưu các file của web vào máy để dùng khi không có mạng.
 // Khi sửa web và upload lại: tăng số phiên bản ở CACHE (v1 -> v2 ...).
-const CACHE = 'tuvung-v1';
+const CACHE = 'tuvung-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
