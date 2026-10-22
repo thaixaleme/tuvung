@@ -105,14 +105,15 @@ main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100
 .banner{flex:1 1 0;min-height:120px;position:relative;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
 .banner img{width:100%;height:100%;object-fit:cover;display:block}
 .banner .ph{position:absolute;inset:0;width:100%;border:2px dashed var(--line);border-radius:14px;background:none;color:var(--muted);font-size:15px}
-/* Khung kiểu A: bo góc lớn, viền theo màu mẫu, bóng đổ nhẹ. Trình chiếu trượt ngang + phóng to chậm */
-.banner.framed{border:3px solid var(--pri);border-radius:22px;box-shadow:0 10px 26px rgba(0,0,0,.16)}
-.track{display:flex;height:100%;transition:transform .6s ease}
-.track.jump{transition:none}
-.slide{flex:0 0 100%;height:100%;overflow:hidden}
-.slide img.zoom{animation:kb 4.6s ease-out forwards}
+/* Khung kiểu A: bo góc lớn, viền theo màu mẫu, bóng đổ nhẹ. Trình chiếu lật trang như sách + phóng to chậm */
+.banner.framed{border:3px solid var(--pri);border-radius:22px;box-shadow:0 10px 26px rgba(0,0,0,.16);perspective:1400px}
+.pg{position:absolute;inset:0;overflow:hidden;background:var(--card);transform-origin:left center;-webkit-backface-visibility:hidden;backface-visibility:hidden}
+.pg::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to left,rgba(0,0,0,.35),rgba(0,0,0,0) 60%);opacity:0;transition:opacity .9s}
+.pg.turn{transition:transform .9s cubic-bezier(.45,.05,.35,1)}
+.pg.turn::after{opacity:1}
+.pg img.zoom{animation:kb 3.8s ease-out forwards}
 @keyframes kb{from{transform:scale(1)}to{transform:scale(1.08)}}
-.dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px}
+.dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px;z-index:5}
 .dot{width:8px;height:8px;padding:0;border:0;border-radius:4px;background:rgba(255,255,255,.6);box-shadow:0 0 3px rgba(0,0,0,.4);transition:width .3s}
 .dot.on{width:20px;background:#fff}
 /* Settings: danh sách ảnh màn hình tổng */
@@ -216,7 +217,7 @@ const OPT_KEY = 'tuvung-study-v1';
 const IMG_SIZE = 200;     // ảnh chủ đề: cắt vuông, thu nhỏ còn 200x200 (px)
 const BANNER_SIZE = 900;  // ảnh màn hình tổng: cạnh dài tối đa 900px
 const BANNER_MAX = 15;    // số ảnh màn hình tổng tối đa (dữ liệu lưu trong máy chỉ được khoảng 5MB)
-const SLIDE_MS = 4000;    // thời gian chuyển ảnh
+const SLIDE_MS = 3000;    // thời gian chuyển ảnh
 const THEMES = [['ocean', 'Ocean'], ['sunset', 'Sunset'], ['lavender', 'Lavender']];
 const SPEAKER = { T: 'THAI', R: 'TRANG' };   // THAI: nam, TRANG: nữ
 const CP_MODES = [['cont', 'Continuous'], ['shadow', 'Shadow'], ['T', 'Be THAI'], ['R', 'Be TRANG']];
@@ -591,40 +592,60 @@ function renderHub() {
   if (db.banners.length) startSlides(db.banners.length);
 }
 
-// ===== Trình chiếu ảnh màn hình tổng =====
-// Ảnh cuối có thêm 1 bản sao của ảnh đầu, để từ ảnh cuối trượt tiếp sang ảnh đầu liền mạch.
+// ===== Trình chiếu ảnh màn hình tổng (lật trang như sách) =====
+// Các ảnh xếp chồng lên nhau. Sang ảnh sau: trang hiện tại xoay quanh gáy bên trái để lộ ảnh bên dưới.
+// Về ảnh trước: trang trước lật ngược từ bên trái trở lại đè lên trang hiện tại.
 let slideTimer = null;
 function slidesHtml(imgs) {
-  const list = imgs.length > 1 ? imgs.concat(imgs[0]) : imgs;
   return `<div class="banner framed" id="slides">
-    <div class="track" id="track">${list.map(src => `<div class="slide"><img src="${esc(src)}" alt=""></div>`).join('')}</div>
+    ${imgs.map(src => `<div class="pg"><img src="${esc(src)}" alt=""></div>`).join('')}
     ${imgs.length > 1 ? `<div class="dots">${imgs.map((_, i) => `<button class="dot" data-d="${i}" aria-label="Image ${i + 1}"></button>`).join('')}</div>` : ''}
   </div>`;
 }
 
 function startSlides(n) {
-  const track = $('#track');
-  let pos = 0;
-  const show = (to, animate) => {
-    track.classList.toggle('jump', !animate);
-    pos = to;
-    track.style.transform = `translateX(${-pos * 100}%)`;
-    document.querySelectorAll('#slides .dot').forEach((d, i) => d.classList.toggle('on', i === pos % n));
-    const img = track.children[pos].querySelector('img'); // phóng to chậm ảnh đang hiện
+  const pages = [...document.querySelectorAll('#slides .pg')];
+  let cur = 0;
+  let busy = false;
+  const zoom = p => { // phóng to chậm ảnh đang hiện
+    const img = p.querySelector('img');
     img.classList.remove('zoom');
     void img.offsetWidth;
     img.classList.add('zoom');
   };
-  const next = () => {
-    show(pos + 1, true);
-    if (pos === n) setTimeout(() => { if (pos === n) show(0, false); }, 650); // tới bản sao ảnh đầu: nhảy về ảnh đầu thật
+  const setDots = k => document.querySelectorAll('#slides .dot').forEach((d, i) => d.classList.toggle('on', i === k));
+  const layout = () => pages.forEach((p, i) => {
+    p.classList.remove('turn');
+    p.style.transform = '';
+    p.style.zIndex = i === cur ? 3 : 1;
+    p.style.visibility = i === cur ? 'visible' : 'hidden';
+  });
+  const flipTo = (to, back) => {
+    if (busy || to === cur) return;
+    busy = true;
+    const a = pages[cur], b = pages[to];
+    b.style.visibility = 'visible';
+    if (!back) {
+      b.style.zIndex = 2;
+      a.classList.add('turn');
+      a.style.transform = 'rotateY(-180deg)';
+    } else {
+      b.style.zIndex = 4;
+      b.style.transform = 'rotateY(-180deg)';
+      void b.offsetWidth;
+      b.classList.add('turn');
+      b.style.transform = 'rotateY(0deg)';
+    }
+    zoom(b);
+    setDots(to);
+    setTimeout(() => { cur = to; layout(); busy = false; }, 950);
   };
-  const prev = () => {
-    if (pos === 0) { show(n, false); void track.offsetWidth; }
-    show(pos - 1, true);
-  };
+  const next = () => flipTo((cur + 1) % n, false);
+  const prev = () => flipTo((cur - 1 + n) % n, true);
   const restart = () => { clearInterval(slideTimer); if (n > 1) slideTimer = setInterval(next, SLIDE_MS); };
-  show(0, false);
+  layout();
+  setDots(0);
+  zoom(pages[0]);
   restart();
   if (n < 2) return;
   const box = $('#slides');
@@ -637,7 +658,7 @@ function startSlides(n) {
     if (dx < -40) { next(); restart(); }
     else if (dx > 40) { prev(); restart(); }
   });
-  box.querySelectorAll('[data-d]').forEach(d => d.onclick = () => { show(+d.dataset.d, true); restart(); });
+  box.querySelectorAll('[data-d]').forEach(d => d.onclick = () => { const k = +d.dataset.d; flipTo(k, k < cur); restart(); });
 }
 
 // Thêm ảnh màn hình tổng (chọn được nhiều ảnh cùng lúc)
