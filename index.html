@@ -13,14 +13,42 @@
 <link rel="icon" href="icon-192.png">
 <title>Vocabulary</title>
 <style>
-:root{--bg:#f4f6fb;--card:#fff;--text:#1a1d24;--muted:#6b7280;--line:#e3e7ef;--pri:#2563eb;--danger:#dc2626;--ok:#16a34a;--chip:#e8eefc}
-@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#1a1d24;--text:#eceef3;--muted:#9aa3b2;--line:#2a2f3a;--pri:#3b82f6;--danger:#f87171;--ok:#22c55e;--chip:#1f2a44}}
+/* Mẫu màu Ocean. --hd-*: thanh tiêu đề. --tc*: màu của từng chủ đề (tc0/tc1/tc2 luân phiên) */
+:root{--bg:#f3f7fc;--card:#fff;--text:#1a1d24;--muted:#6b7280;--line:#e1e8f0;--pri:#185FA5;--danger:#dc2626;--ok:#16a34a;--chip:#E6F1FB;--hd-bg:#E6F1FB;--hd-text:#0C447C}
+.tc0,:root{--tc:#378ADD;--tc-d:#185FA5;--tc-bg:#E6F1FB;--tc-e:#185FA5}
+.tc1{--tc:#1D9E75;--tc-d:#0F6E56;--tc-bg:#E1F5EE;--tc-e:#0F6E56}
+.tc2{--tc:#7F77DD;--tc-d:#534AB7;--tc-bg:#EEEDFE;--tc-e:#534AB7}
+@media (prefers-color-scheme:dark){
+:root{--bg:#0f1115;--card:#1a1d24;--text:#eceef3;--muted:#9aa3b2;--line:#2a2f3a;--pri:#378ADD;--danger:#f87171;--ok:#22c55e;--chip:#0C447C;--hd-bg:#042C53;--hd-text:#B5D4F4}
+.tc0,:root{--tc-d:#85B7EB;--tc-bg:#0C447C}
+.tc1{--tc-d:#5DCAA5;--tc-bg:#085041}
+.tc2{--tc-d:#AFA9EC;--tc-bg:#3C3489}}
+/* Mẫu màu Sunset */
+html[data-theme=sunset]{--bg:#fcf6f3;--pri:#D85A30;--chip:#FAECE7;--hd-bg:#FAECE7;--hd-text:#712B13}
+html[data-theme=sunset],html[data-theme=sunset] .tc0{--tc:#D85A30;--tc-d:#993C1D;--tc-bg:#FAECE7;--tc-e:#993C1D}
+html[data-theme=sunset] .tc1{--tc:#EF9F27;--tc-d:#854F0B;--tc-bg:#FAEEDA;--tc-e:#854F0B}
+html[data-theme=sunset] .tc2{--tc:#D4537E;--tc-d:#993556;--tc-bg:#FBEAF0;--tc-e:#993556}
+/* Mẫu màu Lavender */
+html[data-theme=lavender]{--bg:#f6f5fd;--pri:#534AB7;--chip:#EEEDFE;--hd-bg:#EEEDFE;--hd-text:#3C3489}
+html[data-theme=lavender],html[data-theme=lavender] .tc0{--tc:#7F77DD;--tc-d:#534AB7;--tc-bg:#EEEDFE;--tc-e:#534AB7}
+html[data-theme=lavender] .tc1{--tc:#D4537E;--tc-d:#993556;--tc-bg:#FBEAF0;--tc-e:#993556}
+html[data-theme=lavender] .tc2{--tc:#1D9E75;--tc-d:#0F6E56;--tc-bg:#E1F5EE;--tc-e:#0F6E56}
+@media (prefers-color-scheme:dark){
+html[data-theme=sunset]{--bg:#0f1115;--pri:#D85A30;--chip:#712B13;--hd-bg:#4A1B0C;--hd-text:#F5C4B3}
+html[data-theme=sunset],html[data-theme=sunset] .tc0{--tc-d:#F0997B;--tc-bg:#712B13}
+html[data-theme=sunset] .tc1{--tc-d:#FAC775;--tc-bg:#633806}
+html[data-theme=sunset] .tc2{--tc-d:#ED93B1;--tc-bg:#72243E}
+html[data-theme=lavender]{--bg:#0f1115;--pri:#7F77DD;--chip:#3C3489;--hd-bg:#26215C;--hd-text:#CECBF6}
+html[data-theme=lavender],html[data-theme=lavender] .tc0{--tc-d:#AFA9EC;--tc-bg:#3C3489}
+html[data-theme=lavender] .tc1{--tc-d:#ED93B1;--tc-bg:#72243E}
+html[data-theme=lavender] .tc2{--tc-d:#5DCAA5;--tc-bg:#085041}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);padding-bottom:env(safe-area-inset-bottom)}
-header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;background:var(--card);border-bottom:1px solid var(--line)}
-header h1{flex:1;margin:0 4px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 8px) 10px 8px;background:var(--hd-bg);border-bottom:1px solid var(--line)}
+header h1{flex:1;margin:0 4px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--hd-text)}
+header .icon{color:var(--hd-text)}
 main{max-width:640px;margin:0 auto;padding:14px 16px 40px}
 button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .icon{background:none;border:0;font-size:22px;min-width:40px;height:40px;border-radius:10px;color:var(--pri);padding:0 6px;display:inline-flex;align-items:center;justify-content:center}
@@ -40,7 +68,10 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .item{display:flex;align-items:center;gap:8px;padding:12px 12px;color:inherit;text-decoration:none}
 .item small{display:block;color:var(--muted);font-size:14px}
 .topic{gap:14px;padding:10px 12px}
-.thumb{flex:none;width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:#fff;object-fit:cover;display:flex;align-items:center;justify-content:center;overflow:hidden;color:#2563eb;font-weight:700;font-size:18px;letter-spacing:.5px}
+.thumb{flex:none;width:56px;height:56px;border-radius:50%;border:2px solid var(--tc);background:#fff;object-fit:cover;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--tc-e);font-weight:700;font-size:18px;letter-spacing:.5px}
+.bar{height:5px;border-radius:3px;background:var(--line);margin-top:6px;overflow:hidden;max-width:200px}
+.bar i{display:block;height:100%;background:var(--tc);border-radius:3px}
+#words>li.item{border-left:4px solid var(--tc)}
 .thumb.big{width:88px;height:88px;font-size:26px}
 .imgpick{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
 .imgpick .btns{display:flex;flex-direction:column;gap:8px}
@@ -78,15 +109,15 @@ main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100
 select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);min-width:0}
 .listen .lsopts{margin:0 0 10px}
 .lslist{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border:1px solid var(--line);border-radius:14px}
-.lshead{position:sticky;top:0;z-index:1;background:var(--chip);color:var(--pri);font-weight:700;font-size:14px;padding:6px 14px}
+.lshead{position:sticky;top:0;z-index:1;background:var(--tc-bg);color:var(--tc-d);font-weight:700;font-size:14px;padding:6px 14px}
 .lsitem{padding:10px 14px;border-left:4px solid transparent;cursor:pointer}
 .lsitem .en{font-size:20px;font-weight:700}
 .lsitem .vi{color:var(--muted);font-size:14px}
 .lsitem .ex{font-size:17px;margin-top:2px}
-.lsitem.cur{background:var(--chip);border-left-color:var(--pri)}
-.reading{color:var(--pri)}
+.lsitem.cur{background:var(--tc-bg);border-left-color:var(--tc)}
+.reading{color:var(--tc-d)}
 .reading.kara{color:var(--text)}
-.sung{color:var(--pri)}
+.sung{color:var(--tc-d)}
 .lsbar{flex:none;padding-top:8px}
 .lspos{align-items:center;margin:0}
 .lspos span{font-size:14px;color:var(--muted);min-width:64px}
@@ -102,9 +133,9 @@ dialog h2{margin:0 0 6px;font-size:19px}
 .chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 12px;font-size:14px}
 .chip.on{background:var(--chip);border-color:var(--pri);color:var(--pri)}
 .prog{text-align:center;color:var(--muted);margin:14px 0 0}
-.card{background:var(--card);border:1px solid var(--line);border-radius:20px;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;margin:10px 0;box-shadow:0 6px 20px rgba(0,0,0,.06);-webkit-user-select:none;user-select:none;cursor:pointer}
+.card{background:var(--card);border:2px solid var(--tc);border-radius:20px;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;margin:10px 0;box-shadow:0 6px 20px rgba(0,0,0,.06);-webkit-user-select:none;user-select:none;cursor:pointer}
 .big{font-size:32px;font-weight:700;word-break:break-word}
-.back{margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);width:100%;font-size:20px}
+.back{margin-top:16px;padding:14px;border-radius:14px;background:var(--tc-bg);width:100%;font-size:20px}
 .back .ex{font-size:16px;color:var(--muted);margin-top:8px}
 .hint{color:var(--muted);font-size:14px;margin-top:14px}
 .row3{gap:8px}
@@ -141,7 +172,9 @@ const IMG_SIZE = 200;     // ảnh chủ đề: cắt vuông, thu nhỏ còn 200
 const BANNER_SIZE = 1000; // ảnh khung dưới màn hình chính: cạnh dài tối đa 1000px
 const ICON_EXPAND = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
 const ICON_IMAGE = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
-const ICON_PLAY = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const ICON_PALETTE = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.3-4-7.8-9-7.8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/></svg>';
+const THEMES = [['ocean', 'Ocean'], ['sunset', 'Sunset'], ['lavender', 'Lavender']];
+const ICON_PLAY ='<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
 const ICON_PREV = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>';
 const ICON_NEXT = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>';
@@ -151,7 +184,8 @@ const app = $('#app');
 
 // ===== Dữ liệu =====
 let db = load();
-let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, lsRate: 0.9 }, readJSON(OPT_KEY));
+let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, lsRate: 0.9, theme: 'ocean' }, readJSON(OPT_KEY));
+document.documentElement.dataset.theme = opt.theme;
 let st = null;          // trạng thái phiên học flashcard
 let ls = null;          // trạng thái màn hình Listen
 let editing = null;     // id chủ đề đang ở chế độ sửa (null = chế độ xem)
@@ -179,6 +213,7 @@ function saveOpt() {
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function topicById(id) { return db.topics.find(t => t.id === id); }
+function tcClass(t) { return 'tc' + (Math.max(db.topics.indexOf(t), 0) % 3); } // màu của chủ đề (luân phiên 3 màu)
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -405,9 +440,11 @@ function renderHome() {
   app.innerHTML = `
     <ul class="list tlist">${db.topics.length ? db.topics.map(t => {
       const n = t.words.filter(w => w.learned).length;
-      return `<li><a class="item topic" href="#t/${t.id}">
+      const pct = t.words.length ? Math.round(n * 100 / t.words.length) : 0;
+      return `<li><a class="item topic ${tcClass(t)}" href="#t/${t.id}">
         ${thumbHtml(t.img)}
-        <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} words · ${n} learned</small></div>
+        <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} words · ${n} learned</small>
+          <div class="bar"><i style="width:${pct}%"></i></div></div>
         <span class="chev">›</span></a></li>`;
     }).join('') : '<li class="empty">No topics yet.</li>'}</ul>
     <button class="btn primary block hide-x" id="addT">＋ Add topic</button>
@@ -415,6 +452,7 @@ function renderHome() {
       <button class="btn hide-x" id="exp">Export</button>
       <button class="btn hide-x" id="imp">Import</button>
       <span class="grow"></span>
+      <button class="icon hide-x" id="theme" aria-label="Color theme">${ICON_PALETTE}</button>
       <button class="icon hide-x" id="bMenu" aria-label="Image">${ICON_IMAGE}</button>
       <button class="icon" id="expand" aria-label="${expanded ? 'Show all' : 'Topics only'}">${expanded ? ICON_COLLAPSE : ICON_EXPAND}</button>
     </div>
@@ -426,8 +464,22 @@ function renderHome() {
   $('#imp').onclick = () => $('#fileIn').click();
   $('#expand').onclick = () => { expanded = !expanded; renderHome(); };
   $('#bMenu').onclick = bannerMenu;
+  $('#theme').onclick = themeMenu;
   const pick = $('#bPick');
   if (pick) pick.onclick = () => $('#bannerIn').click();
+}
+
+// Chọn mẫu màu (lưu cùng các tùy chọn khác, không nằm trong dữ liệu từ vựng)
+async function themeMenu() {
+  const r = await ask({
+    title: 'Color theme',
+    msg: 'Current: ' + THEMES.find(x => x[0] === opt.theme)[1],
+    buttons: [{ label: 'Close', value: null }].concat(THEMES.map(([v, label]) => ({ label, value: v, cls: v === opt.theme ? 'primary' : '' })))
+  });
+  if (!r.btn) return;
+  opt.theme = r.btn;
+  saveOpt();
+  document.documentElement.dataset.theme = opt.theme;
 }
 
 // Nút nhỏ đổi ảnh khung dưới màn hình chính
@@ -486,6 +538,7 @@ function renderTopic(t) {
   setBar(t.name, '', [ed
     ? ['Done', 'Finish editing', () => { editing = null; renderTopic(t); }, 'text']
     : ['⚙', 'Edit topic', () => { editing = t.id; renderTopic(t); }]]);
+  app.className = tcClass(t);
   app.innerHTML = `
     ${ed ? `<div class="tophead">${thumbHtml(t.img, 'big')}
       <div class="grow"><b>${esc(t.name)}</b>
@@ -671,6 +724,7 @@ function renderStudy(t) {
       $('#next').onclick = () => go(1);
     });
   }
+  app.className = tcClass(t);
   app.innerHTML = opts + body;
   app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
     const k = b.dataset.o;
@@ -691,7 +745,7 @@ function renderStudy(t) {
 function buildListen(scope) {
   const items = [];
   db.topics.filter(t => !scope || t.id === scope).forEach(t => {
-    t.words.forEach(w => items.push({ tid: t.id, tname: t.name, w }));
+    t.words.forEach(w => items.push({ tid: t.id, tname: t.name, tc: tcClass(t), w }));
   });
   ls = { scope, items, i: 0, playing: false, done: false, resume: false, token: 0 };
 }
@@ -713,9 +767,9 @@ function renderListen(scope) {
       </select>
     </div>
     <div class="lslist" id="lslist">${n ? ls.items.map((it, k) => {
-      const head = it.tid !== last ? `<div class="lshead">${esc(it.tname)}</div>` : '';
+      const head = it.tid !== last ? `<div class="lshead ${it.tc}">${esc(it.tname)}</div>` : '';
       last = it.tid;
-      return head + `<div class="lsitem" id="li-${k}" data-k="${k}">
+      return head + `<div class="lsitem ${it.tc}" id="li-${k}" data-k="${k}">
         <div class="en" data-part="en">${esc(it.w.en)}</div>
         <div class="vi">${esc(it.w.vi)}</div>
         ${it.w.ex ? `<div class="ex" data-part="ex">${esc(it.w.ex)}</div>` : ''}
