@@ -6,12 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Vocabulary">
+<meta name="apple-mobile-web-app-title" content="MYEL">
 <meta name="theme-color" content="#2563eb">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon-192.png">
-<title>Vocabulary</title>
+<title>MYEL</title>
 <style>
 /* Mẫu màu Ocean. --hd-*: thanh tiêu đề. --tc*: màu của từng chủ đề (tc0/tc1/tc2 luân phiên) */
 :root{--bg:#f3f7fc;--card:#fff;--text:#1a1d24;--muted:#6b7280;--line:#e1e8f0;--pri:#185FA5;--danger:#dc2626;--ok:#16a34a;--chip:#E6F1FB;--hd-bg:#E6F1FB;--hd-text:#0C447C}
@@ -53,6 +53,7 @@ main{max-width:640px;margin:0 auto;padding:14px 16px 40px}
 button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .icon{background:none;border:0;font-size:22px;min-width:40px;height:40px;border-radius:10px;color:var(--pri);padding:0 6px;display:inline-flex;align-items:center;justify-content:center}
 .icon.text{font-size:17px;font-weight:600}
+.icon:disabled{opacity:.4}
 #back{font-size:34px;line-height:1;padding-bottom:4px}
 .btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px;font-weight:600}
 .btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
@@ -69,10 +70,10 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .item small{display:block;color:var(--muted);font-size:14px}
 .topic{gap:14px;padding:10px 12px}
 .thumb{flex:none;width:56px;height:56px;border-radius:50%;border:2px solid var(--tc);background:#fff;object-fit:cover;display:flex;align-items:center;justify-content:center;overflow:hidden;color:var(--tc-e);font-weight:700;font-size:18px;letter-spacing:.5px}
+.thumb.big{width:88px;height:88px;font-size:26px}
 .bar{height:5px;border-radius:3px;background:var(--line);margin-top:6px;overflow:hidden;max-width:200px}
 .bar i{display:block;height:100%;background:var(--tc);border-radius:3px}
-#words>li.item{border-left:4px solid var(--tc)}
-.thumb.big{width:88px;height:88px;font-size:26px}
+#words>li.item,#convs>li.item{border-left:4px solid var(--tc)}
 .imgpick{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
 .imgpick .btns{display:flex;flex-direction:column;gap:8px}
 .chev{color:var(--muted);font-size:22px}
@@ -87,34 +88,51 @@ input[type=search]{margin:4px 0 0}
 label,.label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
 .label{margin-bottom:0}
 .bad{border-color:var(--danger)}
-/* Màn hình chính: chiếm vừa 1 màn hình (danh sách chủ đề + nút + khung ảnh) */
-main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100vh - var(--hh,57px) - env(safe-area-inset-bottom));height:calc(100dvh - var(--hh,57px) - env(safe-area-inset-bottom))}
-/* Phần trống được chia: danh sách chủ đề 1 phần, khung ảnh 3 phần */
-.tlist{flex:1 0 310px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0}
-.fill .block{margin:12px 0}
-.tools{align-items:center;margin:0 0 10px}
-.tools .btn{padding:7px 16px;font-size:14px}
-.expanded .tlist{flex:1 1 0}
-.expanded .tools{margin:10px 0 0}
-.expanded .hide-x{display:none!important}
-.banner{flex:3 0 0;min-height:90px;position:relative;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
-.banner img{width:100%;height:100%;object-fit:cover;display:block}
-.banner .ph{position:absolute;inset:0;width:100%;border:2px dashed var(--line);border-radius:14px;background:none;color:var(--muted);font-size:15px}
+select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);min-width:0}
 [data-say]{cursor:pointer}
 .ex .spk{font-style:normal;font-size:13px;margin-right:4px}
+/* Các màn hình chiếm vừa 1 màn hình (danh sách cuộn bên trong) */
+main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100vh - var(--hh,57px) - env(safe-area-inset-bottom));height:calc(100dvh - var(--hh,57px) - env(safe-area-inset-bottom))}
+.tlist{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0}
+.fill .block{margin:12px 0 0}
+/* Màn hình tổng */
+.tiles{display:grid;gap:12px;margin-bottom:14px}
+.tile{display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:var(--tc-bg);border:1px solid var(--tc);color:var(--tc-d);text-decoration:none}
+.tile .ic{width:52px;height:52px;border-radius:14px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none}
+.tile b{display:block;font-size:20px}
+.tile small{font-size:14px}
+.tile .chev{color:var(--tc-d)}
+.banner{flex:1 1 0;min-height:120px;position:relative;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
+.banner img{width:100%;height:100%;object-fit:cover;display:block}
+.banner .ph{position:absolute;inset:0;width:100%;border:2px dashed var(--line);border-radius:14px;background:none;color:var(--muted);font-size:15px}
+/* Settings */
+.sect{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+.sect h3{margin:0 0 8px;font-size:16px}
+.sect .row{margin:8px 0 0}
+.vrow{display:flex;align-items:center;gap:8px;margin:8px 0}
+.vrow .vl{width:92px;font-size:14px;font-weight:600;flex:none}
 /* Chủ đề ở chế độ sửa */
 .tophead{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
 .tophead .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-/* Màn hình Listen (nghe tự động để shadowing) */
-select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);min-width:0}
-.listen .lsopts{margin:0 0 10px}
-.lslist{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border:1px solid var(--line);border-radius:14px}
+/* Trình phát (Listen từ vựng, Conversation) */
+.pl .plopts{margin:0 0 8px}
+.plist{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:8px}
 .lshead{position:sticky;top:0;z-index:1;background:var(--tc-bg);color:var(--tc-d);font-weight:700;font-size:14px;padding:6px 14px}
+.lshead small{font-weight:400;margin-left:6px}
 .lsitem{padding:10px 14px;border-left:4px solid transparent;cursor:pointer}
 .lsitem .en{font-size:20px;font-weight:700}
 .lsitem .vi{color:var(--muted);font-size:14px}
 .lsitem .ex{font-size:17px;margin-top:2px}
 .lsitem.cur{background:var(--tc-bg);border-left-color:var(--tc)}
+.ln{width:fit-content;max-width:85%;margin:8px 12px;padding:8px 12px;border-radius:14px;background:var(--card);border:1px solid var(--tc);cursor:pointer}
+.ln.T{margin-right:auto;border-bottom-left-radius:4px}
+.ln.R{margin-left:auto;border-bottom-right-radius:4px}
+.ln .who{font-size:12px;font-weight:700;color:var(--tc-d);letter-spacing:.5px}
+.ln .txt{font-size:17px}
+.ln .vi{font-size:13px;color:var(--muted)}
+.ln.cur{background:var(--tc-bg)}
+.ln.you{border-style:dashed}
+.ln.you .who::after{content:" · your turn";font-weight:400}
 .reading{color:var(--tc-d)}
 .reading.kara{color:var(--text)}
 .sung{color:var(--tc-d)}
@@ -124,7 +142,6 @@ select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line)
 .lspos input{padding:0;border:0;background:none;margin:0}
 .ctl{justify-content:center;align-items:center;gap:28px;margin:6px 0 0}
 .ctl .play{width:60px;height:60px;border-radius:50%;background:var(--pri);color:#fff}
-.icon:disabled{opacity:.4}
 dialog{border:0;border-radius:16px;padding:18px;width:min(92vw,440px);margin:calc(env(safe-area-inset-top) + 16px) auto auto;background:var(--card);color:var(--text)}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog h2{margin:0 0 6px;font-size:19px}
@@ -150,7 +167,7 @@ dialog h2{margin:0 0 6px;font-size:19px}
 <body>
 <header>
   <button id="back" class="icon" hidden aria-label="Back">‹</button>
-  <h1 id="title">Vocabulary</h1>
+  <h1 id="title">MYEL</h1>
   <div id="actions"></div>
 </header>
 <main id="app"></main>
@@ -169,40 +186,50 @@ dialog h2{margin:0 0 6px;font-size:19px}
 const KEY = 'tuvung-data-v1';
 const OPT_KEY = 'tuvung-study-v1';
 const IMG_SIZE = 200;     // ảnh chủ đề: cắt vuông, thu nhỏ còn 200x200 (px)
-const BANNER_SIZE = 1000; // ảnh khung dưới màn hình chính: cạnh dài tối đa 1000px
-const ICON_EXPAND = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
-const ICON_IMAGE = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
-const ICON_PALETTE = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.8.7-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.3-4-7.8-9-7.8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/><circle cx="14.5" cy="7.5" r="1"/></svg>';
+const BANNER_SIZE = 1000; // ảnh màn hình tổng: cạnh dài tối đa 1000px
 const THEMES = [['ocean', 'Ocean'], ['sunset', 'Sunset'], ['lavender', 'Lavender']];
-const ICON_PLAY ='<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+const SPEAKER = { T: 'THAI', R: 'TRANG' };   // THAI: nam, TRANG: nữ
+const CP_MODES = [['cont', 'Continuous'], ['shadow', 'Shadow'], ['T', 'Be THAI'], ['R', 'Be TRANG']];
+const ICON_PLAY = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
 const ICON_PREV = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>';
 const ICON_NEXT = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>';
-const ICON_COLLAPSE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>';
 const $ = s => document.querySelector(s);
 const app = $('#app');
 
 // ===== Dữ liệu =====
 let db = load();
-let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, lsRate: 0.9, theme: 'ocean' }, readJSON(OPT_KEY));
+let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, lsRate: 0.9, cpRate: 0.9, cpMode: 'cont',
+  theme: 'ocean', voiceV: '', voiceT: '', voiceR: '' }, readJSON(OPT_KEY));
 document.documentElement.dataset.theme = opt.theme;
 let st = null;          // trạng thái phiên học flashcard
-let ls = null;          // trạng thái màn hình Listen
+let pl = null;          // trình phát đang mở (Listen từ vựng hoặc Conversation)
 let editing = null;     // id chủ đề đang ở chế độ sửa (null = chế độ xem)
-let expanded = false;   // màn hình chính: chỉ hiện danh sách chủ đề
 
 function readJSON(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
 }
 function load() {
   const d = readJSON(KEY);
-  if (d && Array.isArray(d.topics)) return d;
-  // Lần đầu mở: tạo 1 chủ đề ví dụ (có thể xóa)
-  return { banner: '', topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
+  if (d && Array.isArray(d.topics)) {
+    if (!Array.isArray(d.conv)) d.conv = [sampleConv()]; // dữ liệu cũ chưa có phần hội thoại
+    return d;
+  }
+  // Lần đầu mở: tạo chủ đề ví dụ (có thể xóa)
+  return { banner: '', conv: [sampleConv()], topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
     { id: uid(), en: 'father', ipa: '/ˈfɑː.ðər/', vi: 'bố, cha', ex: 'My father is a teacher.', learned: false },
     { id: uid(), en: 'mother', ipa: '/ˈmʌð.ər/', vi: 'mẹ', ex: 'My mother cooks very well.', learned: false },
     { id: uid(), en: 'brother', ipa: '/ˈbrʌð.ər/', vi: 'anh trai, em trai', ex: 'I have one brother.', learned: false }
   ] }] };
+}
+function sampleConv() {
+  return { id: uid(), name: 'Daily life (example)', img: '', items: [{ id: uid(), title: 'Weekend plans', lines: parseConv(
+    'THAI: Hi Trang, do you have any plans for the weekend? | Chào Trang, cuối tuần này bạn có kế hoạch gì không?\n' +
+    'TRANG: Not yet. I might stay home and read a book. | Chưa có. Có lẽ mình sẽ ở nhà đọc sách.\n' +
+    'THAI: How about going to the park on Saturday morning? | Sáng thứ Bảy đi công viên thì sao?\n' +
+    'TRANG: That sounds great. What time should we meet? | Nghe hay đấy. Mấy giờ mình gặp nhau?\n' +
+    "THAI: Let's meet at eight, near the main gate. | Gặp lúc tám giờ, gần cổng chính nhé.\n" +
+    'TRANG: OK, see you then! | Được, hẹn gặp lại!').lines }] };
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); return true; }
@@ -213,11 +240,34 @@ function saveOpt() {
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function topicById(id) { return db.topics.find(t => t.id === id); }
-function tcClass(t) { return 'tc' + (Math.max(db.topics.indexOf(t), 0) % 3); } // màu của chủ đề (luân phiên 3 màu)
+function convTopicById(id) { return db.conv.find(t => t.id === id); }
+function tcClass(t, list) { return 'tc' + (Math.max((list || db.topics).indexOf(t), 0) % 3); } // màu của chủ đề (luân phiên 3 màu)
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 function isImg(s) { return /^data:image\//.test(s || ''); }
+
+// Bài hội thoại: mỗi dòng "THAI: câu | nghĩa" hoặc "TRANG: câu | nghĩa" (phần "| nghĩa" có hay không đều được)
+function parseConv(text) {
+  const lines = [];
+  const rows = text.split(/\r?\n/);
+  for (let n = 0; n < rows.length; n++) {
+    const row = rows[n].trim();
+    if (!row) continue;
+    const m = row.match(/^(THAI|TRANG)\s*[:：]\s*(.*)$/i);
+    if (!m) return { error: `Line ${n + 1} must start with "THAI:" or "TRANG:"\n\n${row}` };
+    const bar = m[2].indexOf('|');
+    const en = (bar < 0 ? m[2] : m[2].slice(0, bar)).trim();
+    const vi = bar < 0 ? '' : m[2].slice(bar + 1).trim();
+    if (!en) return { error: `Line ${n + 1}: the sentence is empty` };
+    lines.push({ s: m[1].toUpperCase() === 'THAI' ? 'T' : 'R', en, vi });
+  }
+  if (!lines.length) return { error: 'Enter at least one line' };
+  return { lines };
+}
+function convText(lines) {
+  return lines.map(l => SPEAKER[l.s] + ': ' + l.en + (l.vi ? ' | ' + l.vi : '')).join('\n');
+}
 
 // ===== Ảnh =====
 // Không có ảnh: hiện chữ "EL" trên nền trắng
@@ -292,7 +342,7 @@ function setBar(title, backHash, actions) {
 }
 
 // Hộp thoại chung: trả về Promise {btn, v}
-// fields: {name, label, required, en, multi, ph, value, image}  (image: ô chọn ảnh chủ đề)
+// fields: {name, label, required, en, multi, rows, ph, value, image}  (image: ô chọn ảnh chủ đề)
 // buttons: {label, value, cls, check, run}  (run: chạy ngay khi bấm, ví dụ mở hộp chọn ảnh)
 function ask({ title, msg, fields = [], buttons }) {
   return new Promise(resolve => {
@@ -317,7 +367,7 @@ function ask({ title, msg, fields = [], buttons }) {
       const attr = `name="${f.name}" placeholder="${esc(f.ph || '')}" autocomplete="off"` +
         (f.en ? ' autocapitalize="none" spellcheck="false" lang="en"' : '');
       const input = f.multi
-        ? `<textarea ${attr} rows="2">${esc(f.value)}</textarea>`
+        ? `<textarea ${attr} rows="${f.rows || 2}">${esc(f.value)}</textarea>`
         : `<input ${attr} value="${esc(f.value)}">`;
       return `<label>${esc(f.label)}${f.required ? ' *' : ''}${input}</label>`;
     }).join('');
@@ -368,23 +418,52 @@ function ask({ title, msg, fields = [], buttons }) {
   });
 }
 
-// ===== Phát âm (giọng đọc có sẵn trên máy, chạy offline) =====
-function enVoice() {
-  const voices = speechSynthesis.getVoices();
-  return voices.find(x => x.lang === 'en-US') || voices.find(x => /^en/.test(x.lang));
+// ===== Giọng đọc (giọng có sẵn trên máy, chạy offline) =====
+// kind: 'V' từ vựng, 'T' THAI (nam), 'R' TRANG (nữ)
+const NOVELTY = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Good News|Jester|Organ|Superstar|Trinoids|Whisper|Wobble|Zarvox)\b/i;
+const MALE = /(Evan|Nathan|Aaron|Tom\b|Alex\b|Fred|Daniel|Rishi|Gordon|Arthur|Oliver|Reed|Rocko|Eddy|Grandpa|Ralph|Junior|David|Mark|Guy|Andrew|Brian|Christopher|Eric|Roger|Davis|Tony|Jason)/i;
+const FEMALE = /(Samantha|Ava|Zoe|Allison|Susan|Victoria|Nicky|Joelle|Noelle|Karen|Moira|Tessa|Kate|Serena|Martha|Catherine|Kathy|Flo\b|Sandy|Shelley|Grandma|Zira|Aria|Jenny|Michelle|Emma|Sara|Nancy|Amber|Ashley|Cora|Elizabeth|Monica|Google US English)/i;
+function enVoices() {
+  if (!('speechSynthesis' in window)) return [];
+  return speechSynthesis.getVoices().filter(v => /^en[-_]/i.test(v.lang) && !NOVELTY.test(v.name));
 }
-function speak(text) {
+function voiceScore(v) {
+  return (/^en[-_]US/i.test(v.lang) ? 10 : 0) + (/premium/i.test(v.name) ? 3 : /enhanced/i.test(v.name) ? 2 : 0) + (/samantha/i.test(v.name) ? 1 : 0);
+}
+function bestVoice(re) {
+  const vs = enVoices().filter(v => !re || re.test(v.name));
+  vs.sort((a, b) => voiceScore(b) - voiceScore(a));
+  return vs[0] || null;
+}
+// Trả về {v: giọng, pitch: cao độ}. Không có giọng nam thì THAI dùng giọng khác và chỉnh trầm xuống.
+function voiceFor(kind) {
+  const pref = { V: opt.voiceV, T: opt.voiceT, R: opt.voiceR }[kind];
+  const chosen = pref && enVoices().find(v => v.name === pref);
+  if (kind === 'V') return { v: chosen || bestVoice(null), pitch: 1 };
+  if (kind === 'R') return { v: chosen || bestVoice(FEMALE) || bestVoice(null), pitch: 1 };
+  const v = chosen || bestVoice(MALE);
+  if (v && v !== voiceFor('R').v) return { v, pitch: 1 };
+  return { v: v || bestVoice(null), pitch: 0.7 };
+}
+function makeUtter(text, kind, rate) {
+  const u = new SpeechSynthesisUtterance(text);
+  const { v, pitch } = voiceFor(kind);
+  u.lang = v ? v.lang : 'en-US';
+  if (v) u.voice = v;
+  u.pitch = pitch;
+  u.rate = rate;
+  return u;
+}
+function speak(text, kind) {
   if (!('speechSynthesis' in window)) { toast('Speech is not supported on this device'); return; }
   speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US';
-  const v = enVoice();
-  if (v) u.voice = v;
-  u.rate = 0.9;
-  speechSynthesis.speak(u);
+  speechSynthesis.speak(makeUtter(text, kind || 'V', 0.9));
+}
+if ('speechSynthesis' in window) {
+  speechSynthesis.onvoiceschanged = () => { if (location.hash === '#set') renderSettings(); };
 }
 
-// Tiếng "ting" nhẹ khi chuyển chủ đề (tạo bằng Web Audio, không cần file âm thanh)
+// Tiếng "ting" nhẹ khi chuyển chủ đề / bài (tạo bằng Web Audio, không cần file âm thanh)
 let actx = null;
 function unlockAudio() {
   try {
@@ -407,7 +486,7 @@ function ding() {
   o.stop(t + 0.65);
 }
 
-// Giữ màn hình không tắt trong lúc nghe (máy không hỗ trợ thì bỏ qua)
+// Giữ màn hình không tắt trong lúc phát (máy không hỗ trợ thì bỏ qua)
 let wakeLock = null;
 async function keepAwake(on) {
   try {
@@ -417,85 +496,47 @@ async function keepAwake(on) {
 }
 
 // ===== Điều hướng =====
+// ''      màn hình tổng      | set  Settings
+// v       chủ đề từ vựng     | t/id  từ vựng của chủ đề | s/id  Study | l, l/id  Listen
+// c       chủ đề hội thoại   | ct/id bài hội thoại của chủ đề | cp, cp/id, cp/id/bài  phát hội thoại
 window.addEventListener('hashchange', render);
 window.addEventListener('resize', () => document.documentElement.style.setProperty('--hh', $('header').offsetHeight + 'px'));
 function render() {
-  const [page, id] = location.hash.slice(1).split('/');
+  const [page, id, id2] = location.hash.slice(1).split('/');
   const t = id && topicById(id);
-  if (!(page === 't' && id === editing)) editing = null; // rời chủ đề thì trở về chế độ xem
-  if (page !== 'l' && ls) { stopListen(); ls = null; }   // rời màn hình Listen thì dừng đọc
+  const ct = id && convTopicById(id);
+  if (!((page === 't' || page === 'ct') && id === editing)) editing = null; // rời chủ đề thì trở về chế độ xem
+  if (page !== 'l' && page !== 'cp' && pl) { plStop(); pl = null; }        // rời trình phát thì dừng đọc
   app.className = '';
-  if (page === 'l') renderListen(t ? t.id : null);
+  if (page === 'v') renderVocab();
   else if (page === 't' && t) renderTopic(t);
   else if (page === 's' && t) renderStudy(t);
-  else renderHome();
+  else if (page === 'l') renderListen(t ? t.id : '');
+  else if (page === 'c') renderConvHome();
+  else if (page === 'ct' && ct) renderConvTopic(ct);
+  else if (page === 'cp') renderConvPlay(ct ? (id2 && ct.items.some(c => c.id === id2) ? id + '/' + id2 : id) : '');
+  else if (page === 'set') renderSettings();
+  else renderHub();
   window.scrollTo(0, 0);
 }
 
-// ===== Màn hình chính: danh sách chủ đề + khung ảnh =====
-function renderHome() {
+// ===== Màn hình tổng =====
+function renderHub() {
   st = null;
-  setBar('Vocabulary', null, [['🎧', 'Listen', () => { location.hash = 'l'; }], ['＋', 'Add topic', addTopic]]);
-  app.className = 'fill' + (expanded ? ' expanded' : '');
+  setBar('MYEL', null, [['⚙', 'Settings', () => { location.hash = 'set'; }]]);
+  app.className = 'fill';
+  const words = db.topics.reduce((s, t) => s + t.words.length, 0);
+  const convs = db.conv.reduce((s, t) => s + t.items.length, 0);
   app.innerHTML = `
-    <ul class="list tlist">${db.topics.length ? db.topics.map(t => {
-      const n = t.words.filter(w => w.learned).length;
-      const pct = t.words.length ? Math.round(n * 100 / t.words.length) : 0;
-      return `<li><a class="item topic ${tcClass(t)}" href="#t/${t.id}">
-        ${thumbHtml(t.img)}
-        <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} words · ${n} learned</small>
-          <div class="bar"><i style="width:${pct}%"></i></div></div>
-        <span class="chev">›</span></a></li>`;
-    }).join('') : '<li class="empty">No topics yet.</li>'}</ul>
-    <button class="btn primary block hide-x" id="addT">＋ Add topic</button>
-    <div class="row tools">
-      <button class="btn hide-x" id="exp">Export</button>
-      <button class="btn hide-x" id="imp">Import</button>
-      <span class="grow"></span>
-      <button class="icon hide-x" id="theme" aria-label="Color theme">${ICON_PALETTE}</button>
-      <button class="icon hide-x" id="bMenu" aria-label="Image">${ICON_IMAGE}</button>
-      <button class="icon" id="expand" aria-label="${expanded ? 'Show all' : 'Topics only'}">${expanded ? ICON_COLLAPSE : ICON_EXPAND}</button>
+    <div class="tiles">
+      <a class="tile tc0" href="#v"><span class="ic">📖</span>
+        <div class="grow"><b>Vocabulary</b><small>${db.topics.length} topics · ${words} words</small></div><span class="chev">›</span></a>
+      <a class="tile tc2" href="#c"><span class="ic">💬</span>
+        <div class="grow"><b>Conversation</b><small>${db.conv.length} topics · ${convs} conversations</small></div><span class="chev">›</span></a>
     </div>
-    <div class="banner hide-x">${db.banner
-      ? `<img src="${esc(db.banner)}" alt="">`
-      : '<button class="ph" id="bPick">＋ Add image</button>'}</div>`;
-  $('#addT').onclick = addTopic;
-  $('#exp').onclick = exportData;
-  $('#imp').onclick = () => $('#fileIn').click();
-  $('#expand').onclick = () => { expanded = !expanded; renderHome(); };
-  $('#bMenu').onclick = bannerMenu;
-  $('#theme').onclick = themeMenu;
+    <div class="banner">${db.banner ? `<img src="${esc(db.banner)}" alt="">` : '<button class="ph" id="bPick">＋ Add image</button>'}</div>`;
   const pick = $('#bPick');
   if (pick) pick.onclick = () => $('#bannerIn').click();
-}
-
-// Chọn mẫu màu (lưu cùng các tùy chọn khác, không nằm trong dữ liệu từ vựng)
-async function themeMenu() {
-  const r = await ask({
-    title: 'Color theme',
-    msg: 'Current: ' + THEMES.find(x => x[0] === opt.theme)[1],
-    buttons: [{ label: 'Close', value: null }].concat(THEMES.map(([v, label]) => ({ label, value: v, cls: v === opt.theme ? 'primary' : '' })))
-  });
-  if (!r.btn) return;
-  opt.theme = r.btn;
-  saveOpt();
-  document.documentElement.dataset.theme = opt.theme;
-}
-
-// Nút nhỏ đổi ảnh khung dưới màn hình chính
-async function bannerMenu() {
-  const choose = () => $('#bannerIn').click();
-  const r = await ask({
-    title: 'Image',
-    buttons: db.banner
-      ? [{ label: 'Cancel', value: null }, { label: 'Remove image', value: 'rm', cls: 'danger' }, { label: 'Change image', value: 'pick', cls: 'primary', run: choose }]
-      : [{ label: 'Cancel', value: null }, { label: 'Choose image', value: 'pick', cls: 'primary', run: choose }]
-  });
-  if (r.btn === 'rm') {
-    db.banner = '';
-    save();
-    renderHome();
-  }
 }
 
 $('#bannerIn').onchange = async e => {
@@ -506,8 +547,75 @@ $('#bannerIn').onchange = async e => {
   try { db.banner = await resizeImage(f, BANNER_SIZE, false); }
   catch (err) { toast('Could not read this image'); return; }
   if (!save()) db.banner = old;
-  renderHome();
+  render();
 };
+
+// ===== Settings =====
+function renderSettings() {
+  setBar('Settings', '', []);
+  const vs = enVoices();
+  const vopts = cur => '<option value="">Auto</option>' + vs.map(v =>
+    `<option value="${esc(v.name)}" ${v.name === cur ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('');
+  const voices = [['V', 'Vocabulary', 'voiceV', 'Hello. This is my voice.'], ['T', 'THAI', 'voiceT', "Hi, I'm Thai. Nice to meet you."], ['R', 'TRANG', 'voiceR', "Hi, I'm Trang. Nice to meet you too."]];
+  app.innerHTML = `
+    <section class="sect"><h3>Color theme</h3>
+      <div class="row">${THEMES.map(([v, l]) => `<button class="btn grow ${v === opt.theme ? 'primary' : ''}" data-th="${v}">${l}</button>`).join('')}</div>
+    </section>
+    <section class="sect"><h3>Home image</h3>
+      <div class="row">
+        <button class="btn grow" id="bChg">${db.banner ? 'Change image' : 'Choose image'}</button>
+        ${db.banner ? '<button class="btn grow danger" id="bRm">Remove image</button>' : ''}
+      </div>
+    </section>
+    <section class="sect"><h3>Voices</h3>
+      ${voices.map(([k, l, key, sample]) => `<div class="vrow"><span class="vl">${l}</span>
+        <select class="grow" data-vkey="${key}" aria-label="${l} voice">${vopts(opt[key])}</select>
+        <button class="icon" data-test="${k}" data-sample="${esc(sample)}" aria-label="Test">${ICON_PLAY}</button></div>`).join('')}
+      <p class="muted">${vs.length ? 'Auto picks the best American voice. THAI uses a male voice and TRANG a female voice.'
+        : 'No English voices found on this device.'}</p>
+    </section>
+    <section class="sect"><h3>Backup</h3>
+      <p class="muted">Data is stored only on this device. Export a backup file regularly.</p>
+      <div class="row"><button class="btn grow" id="exp">Export</button><button class="btn grow" id="imp">Import</button></div>
+    </section>`;
+  app.querySelectorAll('[data-th]').forEach(b => b.onclick = () => {
+    opt.theme = b.dataset.th;
+    saveOpt();
+    document.documentElement.dataset.theme = opt.theme;
+    renderSettings();
+  });
+  $('#bChg').onclick = () => $('#bannerIn').click();
+  const rm = $('#bRm');
+  if (rm) rm.onclick = () => {
+    if (!confirm('Remove the home image?')) return;
+    db.banner = '';
+    save();
+    renderSettings();
+  };
+  app.querySelectorAll('[data-vkey]').forEach(s => s.onchange = () => { opt[s.dataset.vkey] = s.value; saveOpt(); });
+  app.querySelectorAll('[data-test]').forEach(b => b.onclick = () => speak(b.dataset.sample, b.dataset.test));
+  $('#exp').onclick = exportData;
+  $('#imp').onclick = () => $('#fileIn').click();
+}
+
+// ===== Từ vựng: danh sách chủ đề =====
+function renderVocab() {
+  st = null;
+  setBar('Vocabulary', '', [['🎧', 'Listen', () => { location.hash = 'l'; }], ['＋', 'Add topic', addTopic]]);
+  app.className = 'fill';
+  app.innerHTML = `
+    <ul class="list tlist">${db.topics.length ? db.topics.map(t => {
+      const n = t.words.filter(w => w.learned).length;
+      const pct = t.words.length ? Math.round(n * 100 / t.words.length) : 0;
+      return `<li><a class="item topic ${tcClass(t)}" href="#t/${t.id}">
+        ${thumbHtml(t.img)}
+        <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} words · ${n} learned</small>
+          <div class="bar"><i style="width:${pct}%"></i></div></div>
+        <span class="chev">›</span></a></li>`;
+    }).join('') : '<li class="empty">No topics yet.</li>'}</ul>
+    <button class="btn primary block" id="addT">＋ Add topic</button>`;
+  $('#addT').onclick = addTopic;
+}
 
 function topicFields(t) {
   return [
@@ -530,23 +638,17 @@ async function addTopic() {
   location.hash = 't/' + t.id;
 }
 
-// ===== Màn hình chủ đề: danh sách từ =====
+// ===== Từ vựng: màn hình chủ đề =====
 // Chế độ xem: chỉ học (nghe, đánh dấu đã thuộc). Bấm ⚙ để vào chế độ sửa.
 function renderTopic(t) {
   st = null;
   const ed = editing === t.id;
-  setBar(t.name, '', [ed
+  setBar(t.name, 'v', [ed
     ? ['Done', 'Finish editing', () => { editing = null; renderTopic(t); }, 'text']
     : ['⚙', 'Edit topic', () => { editing = t.id; renderTopic(t); }]]);
   app.className = tcClass(t);
   app.innerHTML = `
-    ${ed ? `<div class="tophead">${thumbHtml(t.img, 'big')}
-      <div class="grow"><b>${esc(t.name)}</b>
-        <div class="btns">
-          <button class="btn small" id="editT">Edit topic</button>
-          <button class="btn small danger" id="delT">Delete topic</button>
-        </div>
-      </div></div>` : ''}
+    ${ed ? topHeadHtml(t) : ''}
     <div class="row">
       <button class="btn primary grow" id="study" ${t.words.length ? '' : 'disabled'}>▶ Study</button>
       ${ed ? '<button class="btn grow" id="addW">＋ Add word</button>'
@@ -559,7 +661,7 @@ function renderTopic(t) {
   if (ed) {
     $('#addW').onclick = () => editWord(t, null);
     $('#editT').onclick = () => editTopic(t);
-    $('#delT').onclick = () => deleteTopic(t);
+    $('#delT').onclick = () => deleteTopic(t, db.topics, 'words', 'v');
   } else {
     $('#listen').onclick = () => { location.hash = 'l/' + t.id; };
   }
@@ -580,6 +682,16 @@ function renderTopic(t) {
   drawWords(t, '');
 }
 
+function topHeadHtml(t) {
+  return `<div class="tophead">${thumbHtml(t.img, 'big')}
+    <div class="grow"><b>${esc(t.name)}</b>
+      <div class="btns">
+        <button class="btn small" id="editT">Edit topic</button>
+        <button class="btn small danger" id="delT">Delete topic</button>
+      </div>
+    </div></div>`;
+}
+
 function drawWords(t, q) {
   const ed = editing === t.id;
   q = q.trim().toLowerCase();
@@ -598,6 +710,7 @@ function drawWords(t, q) {
     : `<li class="empty">${t.words.length ? 'Not found.' : (ed ? 'No words yet. Tap “＋ Add word”.' : 'No words yet. Tap ⚙ to add words.')}</li>`;
 }
 
+// Dùng chung cho chủ đề từ vựng và chủ đề hội thoại
 async function editTopic(t) {
   const r = await ask({
     title: 'Edit topic',
@@ -611,11 +724,13 @@ async function editTopic(t) {
   render();
 }
 
-function deleteTopic(t) {
-  if (!confirm(`Delete topic "${t.name}" and its ${t.words.length} words?`)) return;
-  db.topics = db.topics.filter(x => x !== t);
+// list: db.topics hoặc db.conv, child: tên mảng con ('words' / 'items'), backHash: màn hình quay về
+function deleteTopic(t, list, child, backHash) {
+  const n = t[child].length;
+  if (!confirm(`Delete topic "${t.name}" and its ${n} ${child === 'words' ? 'words' : 'conversations'}?`)) return;
+  list.splice(list.indexOf(t), 1);
   save();
-  location.hash = '';
+  location.hash = backHash;
 }
 
 async function editWord(t, w) {
@@ -739,43 +854,173 @@ function renderStudy(t) {
   function go(d) { st.i += d; st.flip = false; renderStudy(t); }
 }
 
-// ===== Nghe tự động (shadowing) =====
-// Mỗi từ: đọc từ → nghỉ 1 giây → đọc câu ví dụ → nghỉ 3 giây → từ tiếp theo.
-// Chuyển sang chủ đề khác thì kêu "ting". Đọc hết thì dừng.
-function buildListen(scope) {
-  const items = [];
-  db.topics.filter(t => !scope || t.id === scope).forEach(t => {
-    t.words.forEach(w => items.push({ tid: t.id, tname: t.name, tc: tcClass(t), w }));
-  });
-  ls = { scope, items, i: 0, playing: false, done: false, resume: false, token: 0 };
+// ===== Hội thoại: danh sách chủ đề =====
+function renderConvHome() {
+  setBar('Conversation', '', [['🎧', 'Play all', () => { location.hash = 'cp'; }], ['＋', 'Add topic', addConvTopic]]);
+  app.className = 'fill';
+  app.innerHTML = `
+    <ul class="list tlist">${db.conv.length ? db.conv.map(t => `<li><a class="item topic ${tcClass(t, db.conv)}" href="#ct/${t.id}">
+        ${thumbHtml(t.img)}
+        <div class="grow"><b>${esc(t.name)}</b><small>${t.items.length} conversations</small></div>
+        <span class="chev">›</span></a></li>`).join('') : '<li class="empty">No topics yet.</li>'}</ul>
+    <button class="btn primary block" id="addT">＋ Add topic</button>`;
+  $('#addT').onclick = addConvTopic;
 }
 
-function renderListen(scope) {
-  setBar('Listen', scope ? 't/' + scope : '', []);
-  if (!ls || ls.scope !== scope) { stopListen(); buildListen(scope); }
-  const n = ls.items.length;
-  let last = null;
-  app.className = 'fill listen';
+async function addConvTopic() {
+  const r = await ask({
+    title: 'Add topic',
+    fields: topicFields(null),
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Add', value: 'ok', check: 1, cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  const t = { id: uid(), name: r.v.name, img: r.v.img, items: [] };
+  db.conv.push(t);
+  save();
+  editing = t.id; // chủ đề mới: mở ở chế độ sửa để thêm bài ngay
+  location.hash = 'ct/' + t.id;
+}
+
+// ===== Hội thoại: các bài trong 1 chủ đề =====
+function renderConvTopic(t) {
+  const ed = editing === t.id;
+  setBar(t.name, 'c', [ed
+    ? ['Done', 'Finish editing', () => { editing = null; renderConvTopic(t); }, 'text']
+    : ['⚙', 'Edit topic', () => { editing = t.id; renderConvTopic(t); }]]);
+  app.className = tcClass(t, db.conv);
   app.innerHTML = `
-    <div class="row lsopts">
-      <select id="lsScope" class="grow" aria-label="Topics">
-        <option value="">All topics</option>
-        ${db.topics.map(t => `<option value="${t.id}" ${t.id === scope ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
-      </select>
-      <select id="lsRate" aria-label="Speed">
-        ${[0.7, 0.9, 1].map(r => `<option value="${r}" ${r === opt.lsRate ? 'selected' : ''}>${r.toFixed(1)}x</option>`).join('')}
-      </select>
+    ${ed ? topHeadHtml(t) : ''}
+    <div class="row">
+      <button class="btn primary grow" id="playAll" ${t.items.length ? '' : 'disabled'}>🎧 Play all</button>
+      ${ed ? '<button class="btn grow" id="addC">＋ Add conversation</button>' : ''}
     </div>
-    <div class="lslist" id="lslist">${n ? ls.items.map((it, k) => {
-      const head = it.tid !== last ? `<div class="lshead ${it.tc}">${esc(it.tname)}</div>` : '';
-      last = it.tid;
-      return head + `<div class="lsitem ${it.tc}" id="li-${k}" data-k="${k}">
-        <div class="en" data-part="en">${esc(it.w.en)}</div>
-        <div class="vi">${esc(it.w.vi)}</div>
-        ${it.w.ex ? `<div class="ex" data-part="ex">${esc(it.w.ex)}</div>` : ''}
-      </div>`;
-    }).join('') : '<p class="empty">No words to listen to.</p>'}</div>
-    <div class="lsbar">
+    ${ed && t.items.length ? '<p class="muted">Tap a conversation to edit or delete it.</p>' : ''}
+    <ul class="list" id="convs">${t.items.length ? t.items.map(c => `
+      <li class="item" data-c="${c.id}" style="cursor:pointer">
+        <div class="grow"><b>${esc(c.title)}</b><small>${c.lines.length} lines</small></div>
+        <span class="${ed ? 'pen' : 'chev'}">${ed ? '✎' : '›'}</span>
+      </li>`).join('')
+      : `<li class="empty">${ed ? 'No conversations yet. Tap “＋ Add conversation”.' : 'No conversations yet. Tap ⚙ to add.'}</li>`}</ul>`;
+  $('#playAll').onclick = () => { location.hash = 'cp/' + t.id; };
+  if (ed) {
+    $('#addC').onclick = () => editConv(t, null);
+    $('#editT').onclick = () => editTopic(t);
+    $('#delT').onclick = () => deleteTopic(t, db.conv, 'items', 'c');
+  }
+  $('#convs').onclick = e => {
+    const li = e.target.closest('[data-c]');
+    if (!li) return;
+    const c = t.items.find(x => x.id === li.dataset.c);
+    if (editing === t.id) editConv(t, c);
+    else location.hash = 'cp/' + t.id + '/' + c.id;
+  };
+}
+
+async function editConv(t, c) {
+  let title = c ? c.title : '';
+  let text = c ? convText(c.lines) : '';
+  for (;;) {
+    const r = await ask({
+      title: c ? 'Edit conversation' : 'Add conversation',
+      fields: [
+        { name: 'title', label: 'Title', required: 1, ph: 'e.g. At the cafe', value: title },
+        { name: 'text', label: 'Conversation (THAI: … / TRANG: …, meaning after |)', required: 1, multi: 1, rows: 10,
+          ph: "THAI: Hi, how are you?\nTRANG: I'm fine, thanks. | Mình khỏe, cảm ơn.", value: text }
+      ],
+      buttons: c
+        ? [{ label: 'Delete', value: 'del', cls: 'danger' }, { label: 'Cancel', value: null }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
+        : [{ label: 'Cancel', value: null }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
+    });
+    if (r.btn === 'del') {
+      if (confirm(`Delete "${c.title}"?`)) {
+        t.items = t.items.filter(x => x !== c);
+        save();
+        render();
+      }
+      return;
+    }
+    if (!r.btn) return;
+    title = r.v.title;
+    text = r.v.text;
+    const p = parseConv(text);
+    if (p.error) { alert(p.error); continue; } // sai định dạng: mở lại hộp thoại với nội dung đã nhập
+    if (c) { c.title = title; c.lines = p.lines; }
+    else t.items.push({ id: uid(), title, lines: p.lines });
+    save();
+    render();
+    return;
+  }
+}
+
+// ===== Trình phát dùng chung (Listen từ vựng, Conversation) =====
+// pl = {kind, key, items, i, playing, done, resume, token, run}
+// run(k, ok): đọc từ vị trí k, trả về true nếu đọc hết; ok() = false khi người dùng đã dừng / chuyển vị trí
+function plStop() {
+  if (!pl) return;
+  pl.token++;
+  pl.playing = false;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  keepAwake(false);
+}
+
+// Gọi trong thao tác bấm của người dùng để iPhone cho phép phát âm thanh
+function plStart(k) {
+  unlockAudio();
+  plStop();
+  if ('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance(' '));
+  const token = pl.token;
+  const ok = () => !!pl && pl.token === token;
+  pl.playing = true;
+  keepAwake(true);
+  plUpdate();
+  pl.run(k, ok).then(finished => {
+    if (!finished || !ok()) return;
+    pl.playing = false;
+    pl.done = true;
+    keepAwake(false);
+    plUpdate();
+  });
+}
+
+function plRow(k) { return document.querySelector(`#plist [data-k="${k}"]`); }
+
+// Đặt dòng đang đọc (nổi bật), trả dòng trước về như cũ
+function plSetCur(k, scroll) {
+  const prev = document.querySelector('#plist .cur');
+  if (prev) {
+    prev.classList.remove('cur');
+    prev.querySelectorAll('[data-part]').forEach(p => { p.className = p.dataset.c; p.textContent = p.dataset.t; });
+  }
+  pl.i = k;
+  pl.done = false;
+  const el = plRow(k);
+  if (!el) return;
+  el.classList.add('cur');
+  if (scroll) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
+function plUpdate() {
+  const pos = $('#lsPos');
+  if (!pos || !pl) return;
+  const n = pl.items.length;
+  pos.textContent = n ? `${pl.i + 1} / ${n}` : '0 / 0';
+  $('#lsSeek').value = pl.i + 1;
+  $('#lsPlay').innerHTML = pl.playing ? ICON_PAUSE : ICON_PLAY;
+}
+
+function plMove(d) {
+  const k = Math.min(Math.max(pl.i + d, 0), pl.items.length - 1);
+  if (pl.playing) plStart(k);
+  else { plSetCur(k, true); plUpdate(); }
+}
+
+// Phần chữ được tô màu khi đọc (data-c: class gốc, data-t: chữ gốc để trả về như cũ)
+function partHtml(cls, text) {
+  return `<div class="${cls}" data-part data-c="${cls}" data-t="${esc(text)}">${esc(text)}</div>`;
+}
+
+function plBarHtml(n) {
+  return `<div class="lsbar">
       <div class="row lspos">
         <span id="lsPos"></span>
         <input type="range" id="lsSeek" class="grow" min="1" max="${Math.max(n, 1)}" value="1" ${n ? '' : 'disabled'}>
@@ -786,117 +1031,41 @@ function renderListen(scope) {
         <button class="icon" id="lsNext" aria-label="Next" ${n ? '' : 'disabled'}>${ICON_NEXT}</button>
       </div>
     </div>`;
-  $('#lsScope').onchange = e => { location.hash = e.target.value ? 'l/' + e.target.value : 'l'; };
-  $('#lsRate').onchange = e => { opt.lsRate = parseFloat(e.target.value); saveOpt(); };
-  $('#lslist').onclick = e => {
-    const it = e.target.closest('[data-k]');
-    if (it) startAt(+it.dataset.k);
+}
+
+function plBind() {
+  $('#plist').onclick = e => {
+    const r = e.target.closest('[data-k]');
+    if (r) plStart(+r.dataset.k);
   };
   const seek = $('#lsSeek');
   seek.oninput = () => {
-    if (ls.playing) { ls.resume = true; stopListen(); }
-    setCur(seek.value - 1, true);
-    updateCtl();
+    if (pl.playing) { pl.resume = true; plStop(); }
+    plSetCur(seek.value - 1, true);
+    plUpdate();
   };
   seek.onchange = () => {
-    if (ls.resume) { ls.resume = false; startAt(ls.i); }
+    if (pl.resume) { pl.resume = false; plStart(pl.i); }
   };
-  $('#lsPrev').onclick = () => moveListen(-1);
-  $('#lsNext').onclick = () => moveListen(1);
+  $('#lsPrev').onclick = () => plMove(-1);
+  $('#lsNext').onclick = () => plMove(1);
   $('#lsPlay').onclick = () => {
-    if (ls.playing) { stopListen(); updateCtl(); }
-    else startAt(ls.done ? 0 : ls.i);
+    if (pl.playing) { plStop(); plUpdate(); }
+    else plStart(pl.done ? 0 : pl.i);
   };
-  if (n) setCur(ls.i, false);
-  updateCtl();
+  if (pl.items.length) plSetCur(pl.i, false);
+  plUpdate();
 }
 
-function updateCtl() {
-  const pos = $('#lsPos');
-  if (!pos || !ls) return;
-  const n = ls.items.length;
-  pos.textContent = n ? `${ls.i + 1} / ${n}` : '0 / 0';
-  $('#lsSeek').value = ls.i + 1;
-  $('#lsPlay').innerHTML = ls.playing ? ICON_PAUSE : ICON_PLAY;
+// Chờ ms mili giây; trả về false nếu trong lúc chờ người dùng đã dừng / chuyển vị trí
+function waitFor(ms, ok) {
+  return new Promise(r => setTimeout(() => r(ok()), ms));
 }
 
-// Đặt dòng đang đọc (nổi bật), trả dòng trước về như cũ
-function setCur(k, scroll) {
-  const prev = document.querySelector('.lsitem.cur');
-  if (prev) {
-    prev.classList.remove('cur');
-    const it = ls.items[+prev.dataset.k];
-    prev.querySelectorAll('[data-part]').forEach(p => {
-      p.className = p.dataset.part;
-      p.textContent = p.dataset.part === 'en' ? it.w.en : it.w.ex;
-    });
-  }
-  ls.i = k;
-  ls.done = false;
-  const el = $('#li-' + k);
-  if (!el) return;
-  el.classList.add('cur');
-  if (scroll) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-}
-
-function moveListen(d) {
-  const k = Math.min(Math.max(ls.i + d, 0), ls.items.length - 1);
-  if (ls.playing) startAt(k);
-  else { setCur(k, true); updateCtl(); }
-}
-
-// Bắt đầu đọc từ vị trí k (gọi trong thao tác bấm của người dùng để iPhone cho phép phát âm thanh)
-function startAt(k) {
-  unlockAudio();
-  stopListen();
-  playFrom(k);
-}
-
-function stopListen() {
-  if (!ls) return;
-  ls.token++;
-  ls.playing = false;
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
-  keepAwake(false);
-}
-
-async function playFrom(k) {
-  const token = ls.token;
-  ls.playing = true;
-  keepAwake(true);
-  for (let i = k; i < ls.items.length; i++) {
-    const it = ls.items[i];
-    if (i > k && ls.items[i - 1].tid !== it.tid) {
-      ding();
-      if (!await pauseFor(800, token)) return;
-    }
-    setCur(i, true);
-    updateCtl();
-    if (!await sayPart(i, 'en', token)) return;
-    if (it.w.ex) {
-      if (!await pauseFor(1000, token)) return;
-      if (!await sayPart(i, 'ex', token)) return;
-    }
-    if (i < ls.items.length - 1 && !await pauseFor(3000, token)) return;
-  }
-  ls.playing = false;
-  ls.done = true;
-  keepAwake(false);
-  updateCtl();
-}
-
-// Trả về false nếu trong lúc chờ người dùng đã dừng / chuyển vị trí
-function pauseFor(ms, token) {
-  return new Promise(r => setTimeout(() => r(!!ls && ls.token === token), ms));
-}
-
-// Đọc từ (part = 'en') hoặc câu ví dụ (part = 'ex') của dòng i, tô màu dần theo chữ đang đọc
-function sayPart(i, part, token) {
+// Đọc text bằng giọng kind, tô màu dần el theo chữ đang đọc
+function sayInto(el, text, kind, rate, ok) {
   return new Promise(resolve => {
     if (!('speechSynthesis' in window)) { toast('Speech is not supported on this device'); resolve(false); return; }
-    const w = ls.items[i].w;
-    const text = part === 'en' ? w.en : w.ex;
-    const el = document.querySelector(`#li-${i} [data-part="${part}"]`);
     let ended = false;
     let guard = null;
     const end = () => {
@@ -904,13 +1073,9 @@ function sayPart(i, part, token) {
       ended = true;
       clearTimeout(guard);
       if (el) { el.classList.remove('kara'); paint(el, text, text.length); }
-      resolve(!!ls && ls.token === token);
+      resolve(ok());
     };
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    const v = enVoice();
-    if (v) u.voice = v;
-    u.rate = opt.lsRate;
+    const u = makeUtter(text, kind, rate);
     // Máy gửi vị trí chữ đang đọc: tô màu đến chữ đó. Không gửi: tô màu cả dòng (class reading).
     u.onboundary = e => {
       if (!el || (e.name && e.name !== 'word')) return;
@@ -925,7 +1090,7 @@ function sayPart(i, part, token) {
     u.onend = end;
     u.onerror = end;
     if (el) el.classList.add('reading');
-    guard = setTimeout(end, 4000 + text.length * 150 / opt.lsRate); // phòng khi máy không báo đọc xong
+    guard = setTimeout(end, 4000 + text.length * 150 / rate); // phòng khi máy không báo đọc xong
     speechSynthesis.speak(u);
   });
 }
@@ -936,8 +1101,146 @@ function paint(el, text, n) {
 
 // App bị ẩn (khóa màn hình, chuyển app) thì iPhone ngừng đọc: dừng hẳn để trạng thái đúng
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && ls && ls.playing) { stopListen(); updateCtl(); }
+  if (document.hidden && pl && pl.playing) { plStop(); plUpdate(); }
 });
+
+// ===== Listen: nghe tự động từ vựng (shadowing) =====
+// Mỗi từ: đọc từ → nghỉ 1 giây → đọc câu ví dụ → nghỉ 3 giây → từ tiếp theo.
+// Chuyển sang chủ đề khác thì kêu "ting". Đọc hết thì dừng.
+function renderListen(scope) {
+  setBar('Listen', scope ? 't/' + scope : 'v', []);
+  if (!pl || pl.kind !== 'l' || pl.key !== scope) {
+    if (pl) plStop();
+    const items = [];
+    db.topics.filter(t => !scope || t.id === scope).forEach(t => {
+      t.words.forEach(w => items.push({ tid: t.id, tname: t.name, tc: tcClass(t), w }));
+    });
+    pl = { kind: 'l', key: scope, items, i: 0, playing: false, done: false, resume: false, token: 0, run: runVocab };
+  }
+  const n = pl.items.length;
+  let last = null;
+  app.className = 'fill pl';
+  app.innerHTML = `
+    <div class="row plopts">
+      <select id="lsScope" class="grow" aria-label="Topics">
+        <option value="">All topics</option>
+        ${db.topics.map(t => `<option value="${t.id}" ${t.id === scope ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
+      </select>
+      <select id="lsRate" aria-label="Speed">
+        ${[0.7, 0.9, 1].map(r => `<option value="${r}" ${r === opt.lsRate ? 'selected' : ''}>${r.toFixed(1)}x</option>`).join('')}
+      </select>
+    </div>
+    <div class="plist" id="plist">${n ? pl.items.map((it, k) => {
+      const head = it.tid !== last ? `<div class="lshead ${it.tc}">${esc(it.tname)}</div>` : '';
+      last = it.tid;
+      return head + `<div class="lsitem ${it.tc}" data-k="${k}">
+        ${partHtml('en', it.w.en)}
+        <div class="vi">${esc(it.w.vi)}</div>
+        ${it.w.ex ? partHtml('ex', it.w.ex) : ''}
+      </div>`;
+    }).join('') : '<p class="empty">No words to listen to.</p>'}</div>
+    ${plBarHtml(n)}`;
+  $('#lsScope').onchange = e => { location.hash = e.target.value ? 'l/' + e.target.value : 'l'; };
+  $('#lsRate').onchange = e => { opt.lsRate = parseFloat(e.target.value); saveOpt(); };
+  plBind();
+}
+
+async function runVocab(k, ok) {
+  for (let i = k; i < pl.items.length; i++) {
+    const it = pl.items[i];
+    if (i > k && pl.items[i - 1].tid !== it.tid) {
+      ding();
+      if (!await waitFor(800, ok)) return false;
+    }
+    plSetCur(i, true);
+    plUpdate();
+    const row = plRow(i);
+    if (!await sayInto(row && row.querySelector('[data-c="en"]'), it.w.en, 'V', opt.lsRate, ok)) return false;
+    if (it.w.ex) {
+      if (!await waitFor(1000, ok)) return false;
+      if (!await sayInto(row && row.querySelector('[data-c="ex"]'), it.w.ex, 'V', opt.lsRate, ok)) return false;
+    }
+    if (i < pl.items.length - 1 && !await waitFor(3000, ok)) return false;
+  }
+  return true;
+}
+
+// ===== Conversation: phát hội thoại =====
+// key: '' tất cả | id chủ đề | id chủ đề/id bài
+// Continuous: đọc liền (nghỉ 0.5 giây giữa các câu). Shadow: sau mỗi câu nghỉ bằng thời gian đọc câu đó + 1 giây.
+// Be THAI / Be TRANG: app im lặng ở lượt của người đó để bạn tự nói. Chuyển sang bài khác thì kêu "ting".
+function renderConvPlay(key) {
+  const [tid, cid] = key ? key.split('/') : [];
+  setBar('Conversation', tid ? 'ct/' + tid : 'c', []);
+  if (!pl || pl.kind !== 'c' || pl.key !== key) {
+    if (pl) plStop();
+    const items = [];
+    db.conv.filter(t => !tid || t.id === tid).forEach(t => {
+      t.items.filter(c => !cid || c.id === cid).forEach(c => {
+        c.lines.forEach(ln => items.push({ tname: t.name, cid: c.id, ctitle: c.title, tc: tcClass(t, db.conv), ln }));
+      });
+    });
+    pl = { kind: 'c', key, items, i: 0, playing: false, done: false, resume: false, token: 0, run: runConv };
+  }
+  const n = pl.items.length;
+  let last = null;
+  app.className = 'fill pl';
+  app.innerHTML = `
+    <div class="row plopts">
+      <select id="cpScope" class="grow" aria-label="Conversations">
+        <option value="">All conversations</option>
+        ${db.conv.map(t => `<optgroup label="${esc(t.name)}">
+          <option value="${t.id}" ${key === t.id ? 'selected' : ''}>All in ${esc(t.name)}</option>
+          ${t.items.map(c => `<option value="${t.id}/${c.id}" ${key === t.id + '/' + c.id ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}
+        </optgroup>`).join('')}
+      </select>
+      <select id="cpRate" aria-label="Speed">
+        ${[0.7, 0.9, 1].map(r => `<option value="${r}" ${r === opt.cpRate ? 'selected' : ''}>${r.toFixed(1)}x</option>`).join('')}
+      </select>
+    </div>
+    <div class="opts">${CP_MODES.map(([v, l]) => `<button class="chip ${opt.cpMode === v ? 'on' : ''}" data-m="${v}">${l}</button>`).join('')}</div>
+    <div class="plist" id="plist">${n ? pl.items.map((it, k) => {
+      const head = it.cid !== last ? `<div class="lshead ${it.tc}">${esc(it.ctitle)}<small>${esc(it.tname)}</small></div>` : '';
+      last = it.cid;
+      const s = it.ln.s;
+      return head + `<div class="ln ${s} ${s === 'T' ? 'tc0' : 'tc2'} ${opt.cpMode === s ? 'you' : ''}" data-k="${k}">
+        <div class="who">${SPEAKER[s]}</div>
+        ${partHtml('txt', it.ln.en)}
+        ${it.ln.vi ? `<div class="vi">${esc(it.ln.vi)}</div>` : ''}
+      </div>`;
+    }).join('') : '<p class="empty">No conversations to play.</p>'}</div>
+    ${plBarHtml(n)}`;
+  $('#cpScope').onchange = e => { location.hash = e.target.value ? 'cp/' + e.target.value : 'cp'; };
+  $('#cpRate').onchange = e => { opt.cpRate = parseFloat(e.target.value); saveOpt(); };
+  app.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+    plStop();
+    opt.cpMode = b.dataset.m;
+    saveOpt();
+    renderConvPlay(key);
+  });
+  plBind();
+}
+
+async function runConv(k, ok) {
+  for (let i = k; i < pl.items.length; i++) {
+    const it = pl.items[i];
+    if (i > k && pl.items[i - 1].cid !== it.cid) {
+      ding();
+      if (!await waitFor(1000, ok)) return false;
+    }
+    plSetCur(i, true);
+    plUpdate();
+    const row = plRow(i);
+    const t0 = Date.now();
+    if (opt.cpMode === it.ln.s) {
+      // Lượt của bạn (role-play): im lặng một khoảng ước tính theo độ dài câu
+      if (!await waitFor(it.ln.en.split(/\s+/).length * 450 / opt.cpRate + 1500, ok)) return false;
+    } else if (!await sayInto(row && row.querySelector('[data-part]'), it.ln.en, it.ln.s, opt.cpRate, ok)) return false;
+    const gap = opt.cpMode === 'shadow' ? Date.now() - t0 + 1000 : 500;
+    if (i < pl.items.length - 1 && !await waitFor(gap, ok)) return false;
+  }
+  return true;
+}
 
 // ===== Sao lưu / khôi phục =====
 async function exportData() {
@@ -975,15 +1278,29 @@ function normalize(d) {
   }));
 }
 
+function normalizeConv(d) {
+  return (Array.isArray(d.conv) ? d.conv : []).filter(t => t && t.name).map(t => ({
+    id: uid(),
+    name: String(t.name),
+    img: isImg(t.img) ? t.img : '',
+    items: (Array.isArray(t.items) ? t.items : []).filter(c => c && c.title && Array.isArray(c.lines)).map(c => ({
+      id: uid(),
+      title: String(c.title),
+      lines: c.lines.filter(l => l && l.en).map(l => ({ s: l.s === 'T' ? 'T' : 'R', en: String(l.en), vi: String(l.vi || '') }))
+    }))
+  }));
+}
+
 $('#fileIn').onchange = async e => {
   const f = e.target.files[0];
   e.target.value = '';
   if (!f) return;
-  let topics, banner;
+  let topics, conv, banner;
   try {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.topics)) throw new Error();
     topics = normalize(d);
+    conv = normalizeConv(d);
     banner = isImg(d.banner) ? d.banner : '';
   } catch (err) {
     toast('Invalid file');
@@ -991,12 +1308,13 @@ $('#fileIn').onchange = async e => {
   }
   const r = await ask({
     title: 'Import data',
-    msg: `The file has ${topics.length} topics, ${topics.reduce((s, t) => s + t.words.length, 0)} words. What do you want to do?`,
+    msg: `The file has ${topics.length} vocabulary topics (${topics.reduce((s, t) => s + t.words.length, 0)} words) and ` +
+      `${conv.length} conversation topics (${conv.reduce((s, t) => s + t.items.length, 0)} conversations). What do you want to do?`,
     buttons: [{ label: 'Cancel', value: null }, { label: 'Replace all', value: 'rep', cls: 'danger' }, { label: 'Merge', value: 'merge', cls: 'primary' }]
   });
   if (r.btn === 'rep') {
     if (!confirm('All current data will be replaced by the data in the file. Continue?')) return;
-    db = { banner, topics };
+    db = { banner, topics, conv };
   } else if (r.btn === 'merge') {
     if (!db.banner && banner) db.banner = banner;
     topics.forEach(nt => {
@@ -1005,6 +1323,14 @@ $('#fileIn').onchange = async e => {
       if (!t.img && nt.img) t.img = nt.img;
       nt.words.forEach(w => {
         if (!t.words.some(x => x.en.toLowerCase() === w.en.toLowerCase())) t.words.push(w);
+      });
+    });
+    conv.forEach(nt => {
+      const t = db.conv.find(x => x.name.toLowerCase() === nt.name.toLowerCase());
+      if (!t) { db.conv.push(nt); return; }
+      if (!t.img && nt.img) t.img = nt.img;
+      nt.items.forEach(c => {
+        if (!t.items.some(x => x.title.toLowerCase() === c.title.toLowerCase())) t.items.push(c);
       });
     });
   } else return;
