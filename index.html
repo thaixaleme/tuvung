@@ -58,17 +58,19 @@ label,.label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
 .bad{border-color:var(--danger)}
 /* Màn hình chính: chiếm vừa 1 màn hình (danh sách chủ đề + nút + khung ảnh) */
 main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100vh - var(--hh,57px) - env(safe-area-inset-bottom));height:calc(100dvh - var(--hh,57px) - env(safe-area-inset-bottom))}
-.tlist{flex:none;max-height:310px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0}
+/* Phần trống được chia: danh sách chủ đề 1 phần, khung ảnh 3 phần */
+.tlist{flex:1 0 310px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0}
 .fill .block{margin:12px 0}
 .tools{align-items:center;margin:0 0 10px}
 .tools .btn{padding:7px 16px;font-size:14px}
-.expanded .tlist{flex:1;max-height:none}
+.expanded .tlist{flex:1 1 0}
 .expanded .tools{margin:10px 0 0}
 .expanded .hide-x{display:none!important}
-.banner{flex:1;min-height:120px;position:relative;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
+.banner{flex:3 0 0;min-height:90px;position:relative;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
 .banner img{width:100%;height:100%;object-fit:cover;display:block}
 .banner .ph{position:absolute;inset:0;width:100%;border:2px dashed var(--line);border-radius:14px;background:none;color:var(--muted);font-size:15px}
-.banner .cam{position:absolute;top:8px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center}
+[data-say]{cursor:pointer}
+.ex .spk{font-style:normal;font-size:13px;margin-right:4px}
 /* Chủ đề ở chế độ sửa */
 .tophead{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
 .tophead .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
@@ -85,6 +87,8 @@ dialog h2{margin:0 0 6px;font-size:19px}
 .back{margin-top:16px;padding-top:16px;border-top:1px dashed var(--line);width:100%;font-size:20px}
 .back .ex{font-size:16px;color:var(--muted);margin-top:8px}
 .hint{color:var(--muted);font-size:14px;margin-top:14px}
+.row3{gap:8px}
+.row3 .btn{padding:11px 6px;font-size:15px;white-space:nowrap}
 .done{text-align:center;padding:40px 10px}
 .done .big{margin-bottom:10px}
 .muted{color:var(--muted);font-size:14px;margin:4px 0}
@@ -116,7 +120,8 @@ const OPT_KEY = 'tuvung-study-v1';
 const IMG_SIZE = 200;     // ảnh chủ đề: cắt vuông, thu nhỏ còn 200x200 (px)
 const BANNER_SIZE = 1000; // ảnh khung dưới màn hình chính: cạnh dài tối đa 1000px
 const ICON_EXPAND = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
-const ICON_COLLAPSE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>';
+const ICON_IMAGE = '<svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/></svg>';
+const ICON_COLLAPSE ='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>';
 const $ = s => document.querySelector(s);
 const app = $('#app');
 
@@ -228,6 +233,7 @@ function setBar(title, backHash, actions) {
 
 // Hộp thoại chung: trả về Promise {btn, v}
 // fields: {name, label, required, en, multi, ph, value, image}  (image: ô chọn ảnh chủ đề)
+// buttons: {label, value, cls, check, run}  (run: chạy ngay khi bấm, ví dụ mở hộp chọn ảnh)
 function ask({ title, msg, fields = [], buttons }) {
   return new Promise(resolve => {
     const d = $('#dlg');
@@ -291,6 +297,7 @@ function ask({ title, msg, fields = [], buttons }) {
           if (b.check && f.required && !v[f.name] && !bad) bad = el;
         });
         if (bad) { bad.focus(); toast('Please fill in the fields marked *'); return; }
+        if (b.run) b.run();
         finish({ btn: b.value, v });
       };
       box.appendChild(btn);
@@ -346,25 +353,35 @@ function renderHome() {
       <button class="btn hide-x" id="exp">Export</button>
       <button class="btn hide-x" id="imp">Import</button>
       <span class="grow"></span>
+      <button class="icon hide-x" id="bMenu" aria-label="Image">${ICON_IMAGE}</button>
       <button class="icon" id="expand" aria-label="${expanded ? 'Show all' : 'Topics only'}">${expanded ? ICON_COLLAPSE : ICON_EXPAND}</button>
     </div>
     <div class="banner hide-x">${db.banner
-      ? `<img src="${esc(db.banner)}" alt="">
-         <button class="cam" id="bRm" style="right:52px" aria-label="Remove image">✕</button>
-         <button class="cam" id="bPick" style="right:8px" aria-label="Change image">📷</button>`
+      ? `<img src="${esc(db.banner)}" alt="">`
       : '<button class="ph" id="bPick">＋ Add image</button>'}</div>`;
   $('#addT').onclick = addTopic;
   $('#exp').onclick = exportData;
   $('#imp').onclick = () => $('#fileIn').click();
   $('#expand').onclick = () => { expanded = !expanded; renderHome(); };
-  $('#bPick').onclick = () => $('#bannerIn').click();
-  const rm = $('#bRm');
-  if (rm) rm.onclick = () => {
-    if (!confirm('Remove this image?')) return;
+  $('#bMenu').onclick = bannerMenu;
+  const pick = $('#bPick');
+  if (pick) pick.onclick = () => $('#bannerIn').click();
+}
+
+// Nút nhỏ đổi ảnh khung dưới màn hình chính
+async function bannerMenu() {
+  const choose = () => $('#bannerIn').click();
+  const r = await ask({
+    title: 'Image',
+    buttons: db.banner
+      ? [{ label: 'Cancel', value: null }, { label: 'Remove image', value: 'rm', cls: 'danger' }, { label: 'Change image', value: 'pick', cls: 'primary', run: choose }]
+      : [{ label: 'Cancel', value: null }, { label: 'Choose image', value: 'pick', cls: 'primary', run: choose }]
+  });
+  if (r.btn === 'rm') {
     db.banner = '';
     save();
     renderHome();
-  };
+  }
 }
 
 $('#bannerIn').onchange = async e => {
@@ -453,9 +470,9 @@ function drawWords(t, q) {
     <li class="item">
       <button class="icon" data-say="${esc(w.en)}" aria-label="Pronounce">🔊</button>
       <div class="grow" ${ed ? `data-edit="${w.id}" style="cursor:pointer"` : ''}>
-        <b>${esc(w.en)}</b> ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
+        <b ${ed ? '' : `data-say="${esc(w.en)}"`}>${esc(w.en)}</b> ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
         <div>${esc(w.vi)}</div>
-        ${w.ex ? `<small class="ex">${esc(w.ex)}</small>` : ''}
+        ${w.ex ? `<small class="ex" ${ed ? '' : `data-say="${esc(w.ex)}"`}>${ed ? '' : '<span class="spk">🔈</span>'}${esc(w.ex)}</small>` : ''}
       </div>
       ${ed ? `<span class="pen" data-edit="${w.id}">✎</span>` : ''}
       <button class="icon chk ${w.learned ? 'on' : ''}" data-learn="${w.id}" aria-label="Learned">✓</button>
@@ -560,8 +577,9 @@ function renderStudy(t) {
         ${front}
         ${st.flip ? `<div class="back">${back}</div>` : '<div class="hint">Tap the card to see the answer</div>'}
       </div>
-      <div class="row">
-        <button class="btn grow" id="say">🔊 Listen</button>
+      <div class="row row3">
+        <button class="btn grow" id="say">🔊 Word</button>
+        ${w.ex ? '<button class="btn grow" id="sayEx">🔈 Example</button>' : ''}
         <button class="btn grow ${w.learned ? 'primary' : ''}" id="learn">${w.learned ? '✓ Learned' : '○ Learned'}</button>
       </div>
       <div class="row">
@@ -582,6 +600,7 @@ function renderStudy(t) {
         else if (dx > 50 && st.i > 0) go(-1);
       });
       $('#say').onclick = () => speak(w.en);
+      if (w.ex) $('#sayEx').onclick = () => speak(w.ex);
       $('#learn').onclick = () => { w.learned = !w.learned; save(); renderStudy(t); };
       $('#prev').onclick = () => go(-1);
       $('#next').onclick = () => go(1);
