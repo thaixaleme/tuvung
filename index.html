@@ -23,7 +23,8 @@ header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;p
 header h1{flex:1;margin:0 4px;font-size:19px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 main{max-width:640px;margin:0 auto;padding:14px 16px 40px}
 button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
-.icon{background:none;border:0;font-size:22px;min-width:40px;height:40px;border-radius:10px;color:var(--pri);padding:0 6px}
+.icon{background:none;border:0;font-size:22px;min-width:40px;height:40px;border-radius:10px;color:var(--pri);padding:0 6px;display:inline-flex;align-items:center;justify-content:center}
+.icon.text{font-size:17px;font-weight:600}
 #back{font-size:34px;line-height:1;padding-bottom:4px}
 .btn{border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 14px;font-weight:600}
 .btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
@@ -44,6 +45,7 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .imgpick{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
 .imgpick .btns{display:flex;flex-direction:column;gap:8px}
 .chev{color:var(--muted);font-size:22px}
+.pen{color:var(--muted);font-size:15px}
 .ipa{color:var(--muted);font-size:14px}
 .ex{font-style:italic}
 .chk{font-weight:700;color:var(--muted);opacity:.3}
@@ -54,6 +56,22 @@ input[type=search]{margin:4px 0 0}
 label,.label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
 .label{margin-bottom:0}
 .bad{border-color:var(--danger)}
+/* Màn hình chính: chiếm vừa 1 màn hình (danh sách chủ đề + nút + khung ảnh) */
+main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100vh - var(--hh,57px) - env(safe-area-inset-bottom));height:calc(100dvh - var(--hh,57px) - env(safe-area-inset-bottom))}
+.tlist{flex:none;max-height:310px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0}
+.fill .block{margin:12px 0}
+.tools{align-items:center;margin:0 0 10px}
+.tools .btn{padding:7px 16px;font-size:14px}
+.expanded .tlist{flex:1;max-height:none}
+.expanded .tools{margin:10px 0 0}
+.expanded .hide-x{display:none!important}
+.banner{flex:1;min-height:120px;position:relative;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
+.banner img{width:100%;height:100%;object-fit:cover;display:block}
+.banner .ph{position:absolute;inset:0;width:100%;border:2px dashed var(--line);border-radius:14px;background:none;color:var(--muted);font-size:15px}
+.banner .cam{position:absolute;top:8px;width:36px;height:36px;border-radius:50%;border:0;background:rgba(0,0,0,.5);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center}
+/* Chủ đề ở chế độ sửa */
+.tophead{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+.tophead .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 dialog{border:0;border-radius:16px;padding:18px;width:min(92vw,440px);margin:calc(env(safe-area-inset-top) + 16px) auto auto;background:var(--card);color:var(--text)}
 dialog::backdrop{background:rgba(0,0,0,.45)}
 dialog h2{margin:0 0 6px;font-size:19px}
@@ -69,8 +87,6 @@ dialog h2{margin:0 0 6px;font-size:19px}
 .hint{color:var(--muted);font-size:14px;margin-top:14px}
 .done{text-align:center;padding:40px 10px}
 .done .big{margin-bottom:10px}
-.backup{margin-top:28px}
-.backup h3{margin:0 0 4px;font-size:16px}
 .muted{color:var(--muted);font-size:14px;margin:4px 0}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;z-index:20}
 #toast.show{opacity:1}
@@ -90,20 +106,26 @@ dialog h2{margin:0 0 6px;font-size:19px}
   <div class="row" id="dlgBtns"></div>
 </dialog>
 <input type="file" id="fileIn" accept="application/json,.json" hidden>
+<input type="file" id="bannerIn" accept="image/*" hidden>
 <div id="toast"></div>
 
 <script>
 'use strict';
 const KEY = 'tuvung-data-v1';
 const OPT_KEY = 'tuvung-study-v1';
-const IMG_SIZE = 200; // kích thước ảnh chủ đề sau khi thu nhỏ (px)
+const IMG_SIZE = 200;     // ảnh chủ đề: cắt vuông, thu nhỏ còn 200x200 (px)
+const BANNER_SIZE = 1000; // ảnh khung dưới màn hình chính: cạnh dài tối đa 1000px
+const ICON_EXPAND = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>';
+const ICON_COLLAPSE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>';
 const $ = s => document.querySelector(s);
 const app = $('#app');
 
 // ===== Dữ liệu =====
 let db = load();
 let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false }, readJSON(OPT_KEY));
-let st = null; // trạng thái phiên học flashcard
+let st = null;          // trạng thái phiên học flashcard
+let editing = null;     // id chủ đề đang ở chế độ sửa (null = chế độ xem)
+let expanded = false;   // màn hình chính: chỉ hiện danh sách chủ đề
 
 function readJSON(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
@@ -112,15 +134,15 @@ function load() {
   const d = readJSON(KEY);
   if (d && Array.isArray(d.topics)) return d;
   // Lần đầu mở: tạo 1 chủ đề ví dụ (có thể xóa)
-  return { topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
+  return { banner: '', topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
     { id: uid(), en: 'father', ipa: '/ˈfɑː.ðər/', vi: 'bố, cha', ex: 'My father is a teacher.', learned: false },
     { id: uid(), en: 'mother', ipa: '/ˈmʌð.ər/', vi: 'mẹ', ex: 'My mother cooks very well.', learned: false },
     { id: uid(), en: 'brother', ipa: '/ˈbrʌð.ər/', vi: 'anh trai, em trai', ex: 'I have one brother.', learned: false }
   ] }] };
 }
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(db)); }
-  catch (e) { toast('Could not save data (storage may be full)'); }
+  try { localStorage.setItem(KEY, JSON.stringify(db)); return true; }
+  catch (e) { toast('Could not save data (storage may be full)'); return false; }
 }
 function saveOpt() {
   try { localStorage.setItem(OPT_KEY, JSON.stringify(opt)); } catch (e) {}
@@ -130,8 +152,9 @@ function topicById(id) { return db.topics.find(t => t.id === id); }
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+function isImg(s) { return /^data:image\//.test(s || ''); }
 
-// ===== Ảnh chủ đề =====
+// ===== Ảnh =====
 // Không có ảnh: hiện chữ "EL" trên nền trắng
 function thumbHtml(img, cls) {
   return img
@@ -139,19 +162,33 @@ function thumbHtml(img, cls) {
     : `<span class="thumb ${cls || ''}">EL</span>`;
 }
 
-// Cắt phần vuông ở giữa ảnh, thu nhỏ còn IMG_SIZE x IMG_SIZE, trả về JPEG (data URL)
-function resizeImage(file) {
+// Thu nhỏ ảnh, trả về JPEG (data URL)
+// square = true: cắt phần vuông ở giữa, kích thước size x size
+// square = false: giữ tỉ lệ, cạnh dài tối đa size
+function resizeImage(file, size, square) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
-      const s = Math.min(img.naturalWidth, img.naturalHeight);
+      let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight, w, h;
+      if (square) {
+        const s = Math.min(sw, sh);
+        sx = (sw - s) / 2;
+        sy = (sh - s) / 2;
+        sw = sh = s;
+        w = h = size;
+      } else {
+        const k = Math.min(1, size / Math.max(sw, sh));
+        w = Math.round(sw * k);
+        h = Math.round(sh * k);
+      }
       const c = document.createElement('canvas');
-      c.width = c.height = IMG_SIZE;
+      c.width = w;
+      c.height = h;
       const ctx = c.getContext('2d');
       ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, IMG_SIZE, IMG_SIZE);
-      ctx.drawImage(img, (img.naturalWidth - s) / 2, (img.naturalHeight - s) / 2, s, s, 0, 0, IMG_SIZE, IMG_SIZE);
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
       URL.revokeObjectURL(url);
       resolve(c.toDataURL('image/jpeg', 0.8));
     };
@@ -170,6 +207,7 @@ function toast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// actions: [[nội dung nút, nhãn, hàm, class thêm], ...]
 function setBar(title, backHash, actions) {
   $('#title').textContent = title;
   const b = $('#back');
@@ -177,14 +215,15 @@ function setBar(title, backHash, actions) {
   b.onclick = () => { location.hash = backHash; };
   const box = $('#actions');
   box.innerHTML = '';
-  (actions || []).forEach(([text, label, fn]) => {
+  (actions || []).forEach(([text, label, fn, cls]) => {
     const btn = document.createElement('button');
-    btn.className = 'icon';
+    btn.className = 'icon ' + (cls || '');
     btn.textContent = text;
     btn.setAttribute('aria-label', label);
     btn.onclick = fn;
     box.appendChild(btn);
   });
+  document.documentElement.style.setProperty('--hh', $('header').offsetHeight + 'px');
 }
 
 // Hộp thoại chung: trả về Promise {btn, v}
@@ -230,7 +269,7 @@ function ask({ title, msg, fields = [], buttons }) {
         const f = file.files[0];
         file.value = '';
         if (!f) return;
-        try { imgs[name] = await resizeImage(f); show(); }
+        try { imgs[name] = await resizeImage(f, IMG_SIZE, true); show(); }
         catch (e) { toast('Could not read this image'); }
       };
     });
@@ -277,42 +316,67 @@ function speak(text) {
 
 // ===== Điều hướng =====
 window.addEventListener('hashchange', render);
+window.addEventListener('resize', () => document.documentElement.style.setProperty('--hh', $('header').offsetHeight + 'px'));
 function render() {
   const [page, id] = location.hash.slice(1).split('/');
   const t = id && topicById(id);
+  if (!(page === 't' && id === editing)) editing = null; // rời chủ đề thì trở về chế độ xem
+  app.className = '';
   if (page === 't' && t) renderTopic(t);
   else if (page === 's' && t) renderStudy(t);
   else renderHome();
   window.scrollTo(0, 0);
 }
 
-// ===== Màn hình chính: danh sách chủ đề =====
+// ===== Màn hình chính: danh sách chủ đề + khung ảnh =====
 function renderHome() {
   st = null;
   setBar('Vocabulary', null, [['＋', 'Add topic', addTopic]]);
-  const total = db.topics.reduce((s, t) => s + t.words.length, 0);
+  app.className = 'fill' + (expanded ? ' expanded' : '');
   app.innerHTML = `
-    ${db.topics.length ? `<ul class="list">${db.topics.map(t => {
+    <ul class="list tlist">${db.topics.length ? db.topics.map(t => {
       const n = t.words.filter(w => w.learned).length;
       return `<li><a class="item topic" href="#t/${t.id}">
         ${thumbHtml(t.img)}
         <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} words · ${n} learned</small></div>
         <span class="chev">›</span></a></li>`;
-    }).join('')}</ul>` : '<p class="empty">No topics yet.</p>'}
-    <button class="btn primary block" id="addT">＋ Add topic</button>
-    <section class="backup">
-      <h3>Backup</h3>
-      <p class="muted">Data is stored only on this device. Export a backup file regularly.</p>
-      <div class="row">
-        <button class="btn grow" id="exp">Export</button>
-        <button class="btn grow" id="imp">Import</button>
-      </div>
-      <p class="muted">Total: ${db.topics.length} topics, ${total} words</p>
-    </section>`;
+    }).join('') : '<li class="empty">No topics yet.</li>'}</ul>
+    <button class="btn primary block hide-x" id="addT">＋ Add topic</button>
+    <div class="row tools">
+      <button class="btn hide-x" id="exp">Export</button>
+      <button class="btn hide-x" id="imp">Import</button>
+      <span class="grow"></span>
+      <button class="icon" id="expand" aria-label="${expanded ? 'Show all' : 'Topics only'}">${expanded ? ICON_COLLAPSE : ICON_EXPAND}</button>
+    </div>
+    <div class="banner hide-x">${db.banner
+      ? `<img src="${esc(db.banner)}" alt="">
+         <button class="cam" id="bRm" style="right:52px" aria-label="Remove image">✕</button>
+         <button class="cam" id="bPick" style="right:8px" aria-label="Change image">📷</button>`
+      : '<button class="ph" id="bPick">＋ Add image</button>'}</div>`;
   $('#addT').onclick = addTopic;
   $('#exp').onclick = exportData;
   $('#imp').onclick = () => $('#fileIn').click();
+  $('#expand').onclick = () => { expanded = !expanded; renderHome(); };
+  $('#bPick').onclick = () => $('#bannerIn').click();
+  const rm = $('#bRm');
+  if (rm) rm.onclick = () => {
+    if (!confirm('Remove this image?')) return;
+    db.banner = '';
+    save();
+    renderHome();
+  };
 }
+
+$('#bannerIn').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const old = db.banner;
+  try { db.banner = await resizeImage(f, BANNER_SIZE, false); }
+  catch (err) { toast('Could not read this image'); return; }
+  if (!save()) db.banner = old;
+  renderHome();
+};
 
 function topicFields(t) {
   return [
@@ -331,22 +395,39 @@ async function addTopic() {
   const t = { id: uid(), name: r.v.name, img: r.v.img, words: [] };
   db.topics.push(t);
   save();
+  editing = t.id; // chủ đề mới: mở ở chế độ sửa để thêm từ ngay
   location.hash = 't/' + t.id;
 }
 
 // ===== Màn hình chủ đề: danh sách từ =====
+// Chế độ xem: chỉ học (nghe, đánh dấu đã thuộc). Bấm ⚙ để vào chế độ sửa.
 function renderTopic(t) {
   st = null;
-  setBar(t.name, '', [['⋯', 'Topic options', () => topicMenu(t)]]);
+  const ed = editing === t.id;
+  setBar(t.name, '', [ed
+    ? ['Done', 'Finish editing', () => { editing = null; renderTopic(t); }, 'text']
+    : ['⚙', 'Edit topic', () => { editing = t.id; renderTopic(t); }]]);
   app.innerHTML = `
+    ${ed ? `<div class="tophead">${thumbHtml(t.img, 'big')}
+      <div class="grow"><b>${esc(t.name)}</b>
+        <div class="btns">
+          <button class="btn small" id="editT">Edit topic</button>
+          <button class="btn small danger" id="delT">Delete topic</button>
+        </div>
+      </div></div>` : ''}
     <div class="row">
       <button class="btn primary grow" id="study" ${t.words.length ? '' : 'disabled'}>▶ Study</button>
-      <button class="btn grow" id="addW">＋ Add word</button>
+      ${ed ? '<button class="btn grow" id="addW">＋ Add word</button>' : ''}
     </div>
+    ${ed && t.words.length ? '<p class="muted">Tap a word to edit or delete it.</p>' : ''}
     ${t.words.length > 5 ? '<input type="search" id="q" placeholder="Search…">' : ''}
     <ul class="list" id="words"></ul>`;
   $('#study').onclick = () => { location.hash = 's/' + t.id; };
-  $('#addW').onclick = () => editWord(t, null);
+  if (ed) {
+    $('#addW').onclick = () => editWord(t, null);
+    $('#editT').onclick = () => editTopic(t);
+    $('#delT').onclick = () => deleteTopic(t);
+  }
   const q = $('#q');
   if (q) q.oninput = () => drawWords(t, q.value);
   $('#words').onclick = e => {
@@ -359,46 +440,47 @@ function renderTopic(t) {
       w.learned = !w.learned;
       save();
       learn.classList.toggle('on', w.learned);
-    } else if (edit) editWord(t, t.words.find(x => x.id === edit.dataset.edit));
+    } else if (edit && editing === t.id) editWord(t, t.words.find(x => x.id === edit.dataset.edit));
   };
   drawWords(t, '');
 }
 
 function drawWords(t, q) {
+  const ed = editing === t.id;
   q = q.trim().toLowerCase();
   const ws = t.words.filter(w => !q || (w.en + ' ' + w.vi).toLowerCase().includes(q));
   $('#words').innerHTML = ws.length ? ws.map(w => `
     <li class="item">
       <button class="icon" data-say="${esc(w.en)}" aria-label="Pronounce">🔊</button>
-      <div class="grow" data-edit="${w.id}">
+      <div class="grow" ${ed ? `data-edit="${w.id}" style="cursor:pointer"` : ''}>
         <b>${esc(w.en)}</b> ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
         <div>${esc(w.vi)}</div>
         ${w.ex ? `<small class="ex">${esc(w.ex)}</small>` : ''}
       </div>
+      ${ed ? `<span class="pen" data-edit="${w.id}">✎</span>` : ''}
       <button class="icon chk ${w.learned ? 'on' : ''}" data-learn="${w.id}" aria-label="Learned">✓</button>
     </li>`).join('')
-    : `<li class="empty">${t.words.length ? 'Not found.' : 'No words yet. Tap “＋ Add word”.'}</li>`;
+    : `<li class="empty">${t.words.length ? 'Not found.' : (ed ? 'No words yet. Tap “＋ Add word”.' : 'No words yet. Tap ⚙ to add words.')}</li>`;
 }
 
-async function topicMenu(t) {
+async function editTopic(t) {
   const r = await ask({
-    title: t.name,
-    buttons: [{ label: 'Close', value: null }, { label: 'Delete topic', value: 'del', cls: 'danger' }, { label: 'Edit', value: 'edit', cls: 'primary' }]
+    title: 'Edit topic',
+    fields: topicFields(t),
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', check: 1, cls: 'primary' }]
   });
-  if (r.btn === 'edit') {
-    const r2 = await ask({
-      title: 'Edit topic',
-      fields: topicFields(t),
-      buttons: [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', check: 1, cls: 'primary' }]
-    });
-    if (r2.btn) { t.name = r2.v.name; t.img = r2.v.img; save(); render(); }
-  } else if (r.btn === 'del') {
-    if (confirm(`Delete topic "${t.name}" and its ${t.words.length} words?`)) {
-      db.topics = db.topics.filter(x => x !== t);
-      save();
-      location.hash = '';
-    }
-  }
+  if (!r.btn) return;
+  t.name = r.v.name;
+  t.img = r.v.img;
+  save();
+  render();
+}
+
+function deleteTopic(t) {
+  if (!confirm(`Delete topic "${t.name}" and its ${t.words.length} words?`)) return;
+  db.topics = db.topics.filter(x => x !== t);
+  save();
+  location.hash = '';
 }
 
 async function editWord(t, w) {
@@ -521,7 +603,9 @@ function renderStudy(t) {
 
 // ===== Sao lưu / khôi phục =====
 async function exportData() {
-  const name = 'tuvung-' + new Date().toISOString().slice(0, 10) + '.json';
+  const now = new Date();
+  const ymd = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const name = 'MYEL-' + ymd + '.json';
   const text = JSON.stringify(db, null, 1);
   const blob = new Blob([text], { type: 'application/json' });
   try {
@@ -546,7 +630,7 @@ function normalize(d) {
   return (d.topics || []).filter(t => t && t.name).map(t => ({
     id: uid(),
     name: String(t.name),
-    img: /^data:image\//.test(t.img) ? t.img : '',
+    img: isImg(t.img) ? t.img : '',
     words: (Array.isArray(t.words) ? t.words : []).filter(w => w && w.en).map(w => ({
       id: uid(), en: String(w.en), ipa: String(w.ipa || ''), vi: String(w.vi || ''), ex: String(w.ex || ''), learned: !!w.learned
     }))
@@ -557,11 +641,12 @@ $('#fileIn').onchange = async e => {
   const f = e.target.files[0];
   e.target.value = '';
   if (!f) return;
-  let topics;
+  let topics, banner;
   try {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.topics)) throw new Error();
     topics = normalize(d);
+    banner = isImg(d.banner) ? d.banner : '';
   } catch (err) {
     toast('Invalid file');
     return;
@@ -573,8 +658,9 @@ $('#fileIn').onchange = async e => {
   });
   if (r.btn === 'rep') {
     if (!confirm('All current data will be replaced by the data in the file. Continue?')) return;
-    db = { topics };
+    db = { banner, topics };
   } else if (r.btn === 'merge') {
+    if (!db.banner && banner) db.banner = banner;
     topics.forEach(nt => {
       const t = db.topics.find(x => x.name.toLowerCase() === nt.name.toLowerCase());
       if (!t) { db.topics.push(nt); return; }

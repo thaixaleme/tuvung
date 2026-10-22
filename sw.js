@@ -1,5 +1,5 @@
 // Service Worker: lưu các file của web vào máy để dùng khi không có mạng.
-// Khi sửa web và upload lại: tăng số phiên bản ở CACHE (v1 -> v2 ...).
+// Có mạng thì luôn lấy bản mới nhất từ server, nên khi sửa web chỉ cần upload đè file (không cần đổi CACHE).
 const CACHE = 'tuvung-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
@@ -21,7 +21,7 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const fromCache = () => caches.match(e.request, { ignoreSearch: true })
     .then(r => r || caches.match('./index.html'));
-  const fromNet = fetch(e.request).then(r => {
+  const fromNet = fetch(e.request, { cache: 'no-cache' }).then(r => {
     if (r.ok) {
       const copy = r.clone();
       caches.open(CACHE).then(c => c.put(e.request, copy));
