@@ -105,6 +105,24 @@ main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100
 .banner{flex:1 1 0;min-height:120px;position:relative;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
 .banner img{width:100%;height:100%;object-fit:cover;display:block}
 .banner .ph{position:absolute;inset:0;width:100%;border:2px dashed var(--line);border-radius:14px;background:none;color:var(--muted);font-size:15px}
+/* Khung kiểu A: bo góc lớn, viền theo màu mẫu, bóng đổ nhẹ. Trình chiếu trượt ngang + phóng to chậm */
+.banner.framed{border:3px solid var(--pri);border-radius:22px;box-shadow:0 10px 26px rgba(0,0,0,.16)}
+.track{display:flex;height:100%;transition:transform .6s ease}
+.track.jump{transition:none}
+.slide{flex:0 0 100%;height:100%;overflow:hidden}
+.slide img.zoom{animation:kb 4.6s ease-out forwards}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.08)}}
+.dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px}
+.dot{width:8px;height:8px;padding:0;border:0;border-radius:4px;background:rgba(255,255,255,.6);box-shadow:0 0 3px rgba(0,0,0,.4);transition:width .3s}
+.dot.on{width:20px;background:#fff}
+/* Settings: danh sách ảnh màn hình tổng */
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
+.tb{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:4/3;border:1px solid var(--line)}
+.tb img{width:100%;height:100%;object-fit:cover;display:block}
+.tb button{position:absolute;width:28px;height:28px;border-radius:50%;border:0;background:rgba(0,0,0,.55);color:#fff;font-size:13px;padding:0}
+.tb .x{top:4px;right:4px}
+.tb .l{bottom:4px;left:4px}
+.tb .r{bottom:4px;right:4px}
 /* Settings */
 .sect{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
 .sect h3{margin:0 0 8px;font-size:16px}
@@ -114,6 +132,16 @@ main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100
 /* Chủ đề ở chế độ sửa */
 .tophead{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
 .tophead .btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+/* Màn hình nhập hội thoại (kiểu chat) */
+.cerow{background:var(--card);border:1px solid var(--tc);border-left:4px solid var(--tc);border-radius:12px;padding:8px 10px;margin:8px 0}
+.cerow.T{margin-right:24px}
+.cerow.R{margin-left:24px}
+.cetop{display:flex;align-items:center;gap:2px}
+.who-btn{border:0;border-radius:999px;padding:5px 14px;font-size:13px;font-weight:700;background:var(--tc-bg);color:var(--tc-d)}
+.who-btn::after{content:" ⇄";font-weight:400}
+.icon.sm{min-width:34px;height:34px;font-size:17px;color:var(--muted)}
+.cerow textarea{margin-top:6px;resize:none;overflow:hidden;line-height:1.35}
+.addrow .btn{border-color:var(--tc);color:var(--tc-d)}
 /* Trình phát (Listen từ vựng, Conversation) */
 .pl .plopts{margin:0 0 8px}
 .plist{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:8px}
@@ -178,7 +206,7 @@ dialog h2{margin:0 0 6px;font-size:19px}
   <div class="row" id="dlgBtns"></div>
 </dialog>
 <input type="file" id="fileIn" accept="application/json,.json" hidden>
-<input type="file" id="bannerIn" accept="image/*" hidden>
+<input type="file" id="bannerIn" accept="image/*" multiple hidden>
 <div id="toast"></div>
 
 <script>
@@ -186,7 +214,9 @@ dialog h2{margin:0 0 6px;font-size:19px}
 const KEY = 'tuvung-data-v1';
 const OPT_KEY = 'tuvung-study-v1';
 const IMG_SIZE = 200;     // ảnh chủ đề: cắt vuông, thu nhỏ còn 200x200 (px)
-const BANNER_SIZE = 1000; // ảnh màn hình tổng: cạnh dài tối đa 1000px
+const BANNER_SIZE = 900;  // ảnh màn hình tổng: cạnh dài tối đa 900px
+const BANNER_MAX = 15;    // số ảnh màn hình tổng tối đa (dữ liệu lưu trong máy chỉ được khoảng 5MB)
+const SLIDE_MS = 4000;    // thời gian chuyển ảnh
 const THEMES = [['ocean', 'Ocean'], ['sunset', 'Sunset'], ['lavender', 'Lavender']];
 const SPEAKER = { T: 'THAI', R: 'TRANG' };   // THAI: nam, TRANG: nữ
 const CP_MODES = [['cont', 'Continuous'], ['shadow', 'Shadow'], ['T', 'Be THAI'], ['R', 'Be TRANG']];
@@ -205,6 +235,7 @@ document.documentElement.dataset.theme = opt.theme;
 let st = null;          // trạng thái phiên học flashcard
 let pl = null;          // trình phát đang mở (Listen từ vựng hoặc Conversation)
 let editing = null;     // id chủ đề đang ở chế độ sửa (null = chế độ xem)
+let ce = null;          // bản nháp khi nhập / sửa bài hội thoại
 
 function readJSON(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
@@ -213,10 +244,12 @@ function load() {
   const d = readJSON(KEY);
   if (d && Array.isArray(d.topics)) {
     if (!Array.isArray(d.conv)) d.conv = [sampleConv()]; // dữ liệu cũ chưa có phần hội thoại
+    if (!Array.isArray(d.banners)) d.banners = isImg(d.banner) ? [d.banner] : []; // dữ liệu cũ: 1 ảnh → danh sách ảnh
+    delete d.banner;
     return d;
   }
   // Lần đầu mở: tạo chủ đề ví dụ (có thể xóa)
-  return { banner: '', conv: [sampleConv()], topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
+  return { banners: [], conv: [sampleConv()], topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
     { id: uid(), en: 'father', ipa: '/ˈfɑː.ðər/', vi: 'bố, cha', ex: 'My father is a teacher.', learned: false },
     { id: uid(), en: 'mother', ipa: '/ˈmʌð.ər/', vi: 'mẹ', ex: 'My mother cooks very well.', learned: false },
     { id: uid(), en: 'brother', ipa: '/ˈbrʌð.ər/', vi: 'anh trai, em trai', ex: 'I have one brother.', learned: false }
@@ -265,8 +298,23 @@ function parseConv(text) {
   if (!lines.length) return { error: 'Enter at least one line' };
   return { lines };
 }
-function convText(lines) {
-  return lines.map(l => SPEAKER[l.s] + ': ' + l.en + (l.vi ? ' | ' + l.vi : '')).join('\n');
+// Dán văn bản: mỗi dòng 1 câu. Dòng có "THAI:/TRANG:/T:/R:" ở đầu thì theo tên đó,
+// dòng không có tên thì tự xen kẽ với người nói ở câu trước (prev: 'T' / 'R' / null).
+function parseLoose(text, prev) {
+  const rows = [];
+  text.split(/\r?\n/).forEach(line => {
+    line = line.trim();
+    if (!line) return;
+    const m = line.match(/^(THAI|TRANG|T|R)\s*[:：]\s*(.*)$/i);
+    const s = m ? (/^(THAI|T)$/i.test(m[1]) ? 'T' : 'R') : (prev === 'T' ? 'R' : 'T');
+    const body = m ? m[2] : line;
+    const bar = body.indexOf('|');
+    const en = (bar < 0 ? body : body.slice(0, bar)).trim();
+    if (!en) return;
+    rows.push({ s, en, vi: bar < 0 ? '' : body.slice(bar + 1).trim() });
+    prev = s;
+  });
+  return rows;
 }
 
 // ===== Ảnh =====
@@ -280,7 +328,7 @@ function thumbHtml(img, cls) {
 // Thu nhỏ ảnh, trả về JPEG (data URL)
 // square = true: cắt phần vuông ở giữa, kích thước size x size
 // square = false: giữ tỉ lệ, cạnh dài tối đa size
-function resizeImage(file, size, square) {
+function resizeImage(file, size, square, quality) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const img = new Image();
@@ -305,7 +353,7 @@ function resizeImage(file, size, square) {
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
       URL.revokeObjectURL(url);
-      resolve(c.toDataURL('image/jpeg', 0.8));
+      resolve(c.toDataURL('image/jpeg', quality || 0.8));
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
     img.src = url;
@@ -505,8 +553,10 @@ function render() {
   const [page, id, id2] = location.hash.slice(1).split('/');
   const t = id && topicById(id);
   const ct = id && convTopicById(id);
-  if (!((page === 't' || page === 'ct') && id === editing)) editing = null; // rời chủ đề thì trở về chế độ xem
+  if (!((page === 't' || page === 'ct' || page === 'ce') && id === editing)) editing = null; // rời chủ đề thì trở về chế độ xem
   if (page !== 'l' && page !== 'cp' && pl) { plStop(); pl = null; }        // rời trình phát thì dừng đọc
+  if (page !== 'ce') ce = null;                                            // rời màn hình nhập thì bỏ bản nháp
+  clearInterval(slideTimer);                                               // dừng trình chiếu ảnh
   app.className = '';
   if (page === 'v') renderVocab();
   else if (page === 't' && t) renderTopic(t);
@@ -514,6 +564,7 @@ function render() {
   else if (page === 'l') renderListen(t ? t.id : '');
   else if (page === 'c') renderConvHome();
   else if (page === 'ct' && ct) renderConvTopic(ct);
+  else if (page === 'ce' && ct && (id2 === 'new' || ct.items.some(c => c.id === id2))) renderConvEdit(ct, id2);
   else if (page === 'cp') renderConvPlay(ct ? (id2 && ct.items.some(c => c.id === id2) ? id + '/' + id2 : id) : '');
   else if (page === 'set') renderSettings();
   else renderHub();
@@ -534,19 +585,76 @@ function renderHub() {
       <a class="tile tc2" href="#c"><span class="ic">💬</span>
         <div class="grow"><b>Conversation</b><small>${db.conv.length} topics · ${convs} conversations</small></div><span class="chev">›</span></a>
     </div>
-    <div class="banner">${db.banner ? `<img src="${esc(db.banner)}" alt="">` : '<button class="ph" id="bPick">＋ Add image</button>'}</div>`;
+    ${db.banners.length ? slidesHtml(db.banners) : '<div class="banner"><button class="ph" id="bPick">＋ Add image</button></div>'}`;
   const pick = $('#bPick');
   if (pick) pick.onclick = () => $('#bannerIn').click();
+  if (db.banners.length) startSlides(db.banners.length);
 }
 
+// ===== Trình chiếu ảnh màn hình tổng =====
+// Ảnh cuối có thêm 1 bản sao của ảnh đầu, để từ ảnh cuối trượt tiếp sang ảnh đầu liền mạch.
+let slideTimer = null;
+function slidesHtml(imgs) {
+  const list = imgs.length > 1 ? imgs.concat(imgs[0]) : imgs;
+  return `<div class="banner framed" id="slides">
+    <div class="track" id="track">${list.map(src => `<div class="slide"><img src="${esc(src)}" alt=""></div>`).join('')}</div>
+    ${imgs.length > 1 ? `<div class="dots">${imgs.map((_, i) => `<button class="dot" data-d="${i}" aria-label="Image ${i + 1}"></button>`).join('')}</div>` : ''}
+  </div>`;
+}
+
+function startSlides(n) {
+  const track = $('#track');
+  let pos = 0;
+  const show = (to, animate) => {
+    track.classList.toggle('jump', !animate);
+    pos = to;
+    track.style.transform = `translateX(${-pos * 100}%)`;
+    document.querySelectorAll('#slides .dot').forEach((d, i) => d.classList.toggle('on', i === pos % n));
+    const img = track.children[pos].querySelector('img'); // phóng to chậm ảnh đang hiện
+    img.classList.remove('zoom');
+    void img.offsetWidth;
+    img.classList.add('zoom');
+  };
+  const next = () => {
+    show(pos + 1, true);
+    if (pos === n) setTimeout(() => { if (pos === n) show(0, false); }, 650); // tới bản sao ảnh đầu: nhảy về ảnh đầu thật
+  };
+  const prev = () => {
+    if (pos === 0) { show(n, false); void track.offsetWidth; }
+    show(pos - 1, true);
+  };
+  const restart = () => { clearInterval(slideTimer); if (n > 1) slideTimer = setInterval(next, SLIDE_MS); };
+  show(0, false);
+  restart();
+  if (n < 2) return;
+  const box = $('#slides');
+  let x0 = null;
+  box.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+  box.addEventListener('touchend', e => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    x0 = null;
+    if (dx < -40) { next(); restart(); }
+    else if (dx > 40) { prev(); restart(); }
+  });
+  box.querySelectorAll('[data-d]').forEach(d => d.onclick = () => { show(+d.dataset.d, true); restart(); });
+}
+
+// Thêm ảnh màn hình tổng (chọn được nhiều ảnh cùng lúc)
 $('#bannerIn').onchange = async e => {
-  const f = e.target.files[0];
+  const files = [...e.target.files];
   e.target.value = '';
-  if (!f) return;
-  const old = db.banner;
-  try { db.banner = await resizeImage(f, BANNER_SIZE, false); }
-  catch (err) { toast('Could not read this image'); return; }
-  if (!save()) db.banner = old;
+  let added = 0;
+  for (const f of files) {
+    if (db.banners.length >= BANNER_MAX) { toast(`Up to ${BANNER_MAX} images`); break; }
+    let img;
+    try { img = await resizeImage(f, BANNER_SIZE, false, 0.75); }
+    catch (err) { toast('Could not read an image'); continue; }
+    db.banners.push(img);
+    if (!save()) { db.banners.pop(); break; } // bộ nhớ đầy: save() đã báo
+    added++;
+  }
+  if (added) toast(`Added ${added} image${added > 1 ? 's' : ''}`);
   render();
 };
 
@@ -561,11 +669,15 @@ function renderSettings() {
     <section class="sect"><h3>Color theme</h3>
       <div class="row">${THEMES.map(([v, l]) => `<button class="btn grow ${v === opt.theme ? 'primary' : ''}" data-th="${v}">${l}</button>`).join('')}</div>
     </section>
-    <section class="sect"><h3>Home image</h3>
-      <div class="row">
-        <button class="btn grow" id="bChg">${db.banner ? 'Change image' : 'Choose image'}</button>
-        ${db.banner ? '<button class="btn grow danger" id="bRm">Remove image</button>' : ''}
-      </div>
+    <section class="sect"><h3>Home images (${db.banners.length} / ${BANNER_MAX})</h3>
+      <p class="muted">Shown as a slideshow on the home screen. ◀ ▶ change the order, ✕ removes an image.</p>
+      ${db.banners.length ? `<div class="thumbs" id="thumbs">${db.banners.map((src, i) => `<div class="tb" data-b="${i}">
+        <img src="${esc(src)}" alt="">
+        <button class="x" data-act="rm" aria-label="Remove">✕</button>
+        ${i ? '<button class="l" data-act="l" aria-label="Move left">◀</button>' : ''}
+        ${i < db.banners.length - 1 ? '<button class="r" data-act="r" aria-label="Move right">▶</button>' : ''}
+      </div>`).join('')}</div>` : ''}
+      <div class="row"><button class="btn grow" id="bAdd" ${db.banners.length >= BANNER_MAX ? 'disabled' : ''}>＋ Add images</button></div>
     </section>
     <section class="sect"><h3>Voices</h3>
       ${voices.map(([k, l, key, sample]) => `<div class="vrow"><span class="vl">${l}</span>
@@ -584,11 +696,18 @@ function renderSettings() {
     document.documentElement.dataset.theme = opt.theme;
     renderSettings();
   });
-  $('#bChg').onclick = () => $('#bannerIn').click();
-  const rm = $('#bRm');
-  if (rm) rm.onclick = () => {
-    if (!confirm('Remove the home image?')) return;
-    db.banner = '';
+  $('#bAdd').onclick = () => $('#bannerIn').click();
+  const thumbs = $('#thumbs');
+  if (thumbs) thumbs.onclick = e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const i = +b.closest('[data-b]').dataset.b;
+    const list = db.banners;
+    if (b.dataset.act === 'rm') {
+      if (!confirm('Remove this image?')) return;
+      list.splice(i, 1);
+    } else if (b.dataset.act === 'l') [list[i - 1], list[i]] = [list[i], list[i - 1]];
+    else if (b.dataset.act === 'r') [list[i + 1], list[i]] = [list[i], list[i + 1]];
     save();
     renderSettings();
   };
@@ -916,40 +1035,139 @@ function renderConvTopic(t) {
   };
 }
 
-async function editConv(t, c) {
-  let title = c ? c.title : '';
-  let text = c ? convText(c.lines) : '';
-  for (;;) {
-    const r = await ask({
-      title: c ? 'Edit conversation' : 'Add conversation',
-      fields: [
-        { name: 'title', label: 'Title', required: 1, ph: 'e.g. At the cafe', value: title },
-        { name: 'text', label: 'Conversation (THAI: … / TRANG: …, meaning after |)', required: 1, multi: 1, rows: 10,
-          ph: "THAI: Hi, how are you?\nTRANG: I'm fine, thanks. | Mình khỏe, cảm ơn.", value: text }
-      ],
-      buttons: c
-        ? [{ label: 'Delete', value: 'del', cls: 'danger' }, { label: 'Cancel', value: null }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
-        : [{ label: 'Cancel', value: null }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
-    });
-    if (r.btn === 'del') {
-      if (confirm(`Delete "${c.title}"?`)) {
-        t.items = t.items.filter(x => x !== c);
-        save();
-        render();
-      }
-      return;
-    }
-    if (!r.btn) return;
-    title = r.v.title;
-    text = r.v.text;
-    const p = parseConv(text);
-    if (p.error) { alert(p.error); continue; } // sai định dạng: mở lại hộp thoại với nội dung đã nhập
-    if (c) { c.title = title; c.lines = p.lines; }
-    else t.items.push({ id: uid(), title, lines: p.lines });
-    save();
-    render();
-    return;
+function editConv(t, c) { location.hash = 'ce/' + t.id + '/' + (c ? c.id : 'new'); }
+
+// ===== Hội thoại: màn hình nhập kiểu chat =====
+// Mỗi câu 1 ô. Chạm tên để đổi THAI ⇄ TRANG. Enter: thêm câu tiếp theo cho người còn lại.
+function renderConvEdit(t, cid) {
+  const c = t.items.find(x => x.id === cid);
+  if (!ce || ce.key !== t.id + '/' + cid) {
+    ce = { key: t.id + '/' + cid, title: c ? c.title : '', dirty: false,
+      rows: c ? c.lines.map(l => Object.assign({}, l)) : [{ s: 'T', en: '', vi: '' }] };
   }
+  setBar(c ? 'Edit conversation' : 'New conversation', null, [['Save', 'Save', () => saveConvEdit(t, c), 'text']]);
+  const back = $('#back');
+  back.hidden = false;
+  back.onclick = () => {
+    if (ce && ce.dirty && !confirm('Discard your changes?')) return;
+    location.hash = 'ct/' + t.id;
+  };
+  app.className = tcClass(t, db.conv);
+  app.innerHTML = `
+    <label>Title *<input id="ceTitle" value="${esc(ce.title)}" placeholder="e.g. At the cafe" autocomplete="off"></label>
+    <div id="ceRows"></div>
+    <div class="row addrow">
+      <button class="btn grow tc0" id="ceAddT">＋ THAI</button>
+      <button class="btn grow tc2" id="ceAddR">＋ TRANG</button>
+    </div>
+    <div class="row">
+      <button class="btn grow" id="cePaste">Paste text</button>
+      ${c ? '<button class="btn grow danger" id="ceDel">Delete</button>' : ''}
+    </div>
+    <p class="muted">Tap a name to switch THAI ⇄ TRANG. Press Return after a sentence to add the next one for the other person.</p>`;
+  $('#ceTitle').oninput = e => { ce.title = e.target.value; ce.dirty = true; };
+  $('#ceAddT').onclick = () => ceAdd('T', ce.rows.length);
+  $('#ceAddR').onclick = () => ceAdd('R', ce.rows.length);
+  $('#cePaste').onclick = cePaste;
+  if (c) $('#ceDel').onclick = () => {
+    if (!confirm(`Delete "${c.title}"?`)) return;
+    t.items = t.items.filter(x => x !== c);
+    save();
+    location.hash = 'ct/' + t.id;
+  };
+  const box = $('#ceRows');
+  box.oninput = e => {
+    const row = e.target.closest('[data-i]');
+    if (!row || !e.target.dataset.f) return;
+    ce.rows[+row.dataset.i][e.target.dataset.f] = e.target.value;
+    ce.dirty = true;
+    fitHeight(e.target);
+  };
+  box.onkeydown = e => {
+    if (e.key !== 'Enter' || e.isComposing || !e.target.dataset.f) return; // đang gõ bằng bộ gõ (IME) thì bỏ qua
+    e.preventDefault();
+    const i = +e.target.closest('[data-i]').dataset.i;
+    ceAdd(ce.rows[i].s === 'T' ? 'R' : 'T', i + 1);
+  };
+  box.onclick = e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const i = +b.closest('[data-i]').dataset.i;
+    const rows = ce.rows;
+    if (b.dataset.act === 'sw') rows[i].s = rows[i].s === 'T' ? 'R' : 'T';
+    else if (b.dataset.act === 'up' && i > 0) [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]];
+    else if (b.dataset.act === 'down' && i < rows.length - 1) [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]];
+    else if (b.dataset.act === 'del') rows.splice(i, 1);
+    ce.dirty = true;
+    ceDraw();
+  };
+  ceDraw();
+}
+
+function ceDraw(focus) {
+  const n = ce.rows.length;
+  $('#ceRows').innerHTML = ce.rows.map((r, i) => `
+    <div class="cerow ${r.s} ${r.s === 'T' ? 'tc0' : 'tc2'}" data-i="${i}">
+      <div class="cetop">
+        <button class="who-btn" data-act="sw" aria-label="Switch speaker">${SPEAKER[r.s]}</button>
+        <span class="grow"></span>
+        <button class="icon sm" data-act="up" aria-label="Move up" ${i ? '' : 'disabled'}>↑</button>
+        <button class="icon sm" data-act="down" aria-label="Move down" ${i < n - 1 ? '' : 'disabled'}>↓</button>
+        <button class="icon sm" data-act="del" aria-label="Delete">✕</button>
+      </div>
+      <textarea data-f="en" rows="1" placeholder="Sentence" lang="en" autocomplete="off" enterkeyhint="next">${esc(r.en)}</textarea>
+      <textarea data-f="vi" rows="1" placeholder="Meaning (optional)" autocomplete="off" enterkeyhint="next">${esc(r.vi)}</textarea>
+    </div>`).join('');
+  $('#ceRows').querySelectorAll('textarea').forEach(fitHeight);
+  if (focus != null) {
+    const el = document.querySelector(`#ceRows [data-i="${focus}"] [data-f="en"]`);
+    if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); }
+  }
+}
+
+// Ô nhập tự giãn chiều cao theo nội dung (câu dài xuống dòng, không bị che)
+function fitHeight(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 2 + 'px';
+}
+
+function ceAdd(s, at) {
+  ce.rows.splice(at, 0, { s, en: '', vi: '' });
+  ce.dirty = true;
+  ceDraw(at);
+}
+
+async function cePaste() {
+  const r = await ask({
+    title: 'Paste text',
+    msg: 'One sentence per line. Lines without a name alternate between THAI and TRANG. ' +
+      'To set the speaker, start a line with THAI: / TRANG: (or T: / R:). Add the meaning after |.',
+    fields: [{ name: 'text', label: 'Text', required: 1, multi: 1, rows: 8,
+      ph: "Hi, how are you?\nI'm fine, thanks. | Mình khỏe, cảm ơn." }],
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Add', value: 'ok', check: 1, cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  const kept = ce.rows.filter(x => x.en.trim() || x.vi.trim()); // bỏ các ô còn trống
+  const rows = parseLoose(r.v.text, kept.length ? kept[kept.length - 1].s : null);
+  if (!rows.length) { toast('No sentences found'); return; }
+  ce.rows = kept.concat(rows);
+  ce.dirty = true;
+  ceDraw();
+  toast(`Added ${rows.length} sentences`);
+}
+
+function saveConvEdit(t, c) {
+  const title = ce.title.trim();
+  if (!title) { $('#ceTitle').focus(); toast('Enter a title'); return; }
+  const bad = ce.rows.findIndex(r => !r.en.trim() && r.vi.trim());
+  if (bad >= 0) { ceDraw(bad); toast('This sentence is empty'); return; }
+  const lines = ce.rows.filter(r => r.en.trim()).map(r => ({ s: r.s, en: r.en.trim(), vi: r.vi.trim() }));
+  if (!lines.length) { toast('Add at least one sentence'); return; }
+  if (c) { c.title = title; c.lines = lines; }
+  else t.items.push({ id: uid(), title, lines });
+  save();
+  ce = null;
+  location.hash = 'ct/' + t.id;
 }
 
 // ===== Trình phát dùng chung (Listen từ vựng, Conversation) =====
@@ -1295,13 +1513,14 @@ $('#fileIn').onchange = async e => {
   const f = e.target.files[0];
   e.target.value = '';
   if (!f) return;
-  let topics, conv, banner;
+  let topics, conv, banners;
   try {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.topics)) throw new Error();
     topics = normalize(d);
     conv = normalizeConv(d);
-    banner = isImg(d.banner) ? d.banner : '';
+    // File sao lưu cũ có 1 ảnh (banner), file mới có danh sách ảnh (banners)
+    banners = (Array.isArray(d.banners) ? d.banners : [d.banner]).filter(isImg).slice(0, BANNER_MAX);
   } catch (err) {
     toast('Invalid file');
     return;
@@ -1314,9 +1533,9 @@ $('#fileIn').onchange = async e => {
   });
   if (r.btn === 'rep') {
     if (!confirm('All current data will be replaced by the data in the file. Continue?')) return;
-    db = { banner, topics, conv };
+    db = { banners, topics, conv };
   } else if (r.btn === 'merge') {
-    if (!db.banner && banner) db.banner = banner;
+    banners.forEach(b => { if (db.banners.length < BANNER_MAX && !db.banners.includes(b)) db.banners.push(b); });
     topics.forEach(nt => {
       const t = db.topics.find(x => x.name.toLowerCase() === nt.name.toLowerCase());
       if (!t) { db.topics.push(nt); return; }
