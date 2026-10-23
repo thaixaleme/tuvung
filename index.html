@@ -74,6 +74,7 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .bar{height:5px;border-radius:3px;background:var(--line);margin-top:6px;overflow:hidden;max-width:200px}
 .bar i{display:block;height:100%;background:var(--tc);border-radius:3px}
 #words>li.item,#convs>li.item{border-left:4px solid var(--tc)}
+#words>li.divider{list-style:none;padding:6px 12px;font-size:13px;font-weight:700;color:var(--ok);background:var(--bg)}
 .imgpick{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
 .imgpick .btns{display:flex;flex-direction:column;gap:8px}
 .chev{color:var(--muted);font-size:22px}
@@ -553,8 +554,23 @@ function speak(text, kind) {
   speechSynthesis.cancel();
   speechSynthesis.speak(makeUtter(text, kind || 'V', 0.9));
 }
+function allVoiceCount() { return 'speechSynthesis' in window ? speechSynthesis.getVoices().length : 0; }
 if ('speechSynthesis' in window) {
   speechSynthesis.onvoiceschanged = () => { if (location.hash === '#set') renderSettings(); };
+}
+// iPhone thường trả về danh sách giọng trống ở lần hỏi đầu và có thể không báo khi danh sách sẵn sàng:
+// hỏi lại vài lần (khoảng 6 giây), có danh sách thì vẽ lại màn hình Settings.
+let voicePoll = null;
+function pollVoices() {
+  clearInterval(voicePoll);
+  let n = 0;
+  voicePoll = setInterval(() => {
+    n++;
+    if (enVoices().length || n > 20 || location.hash !== '#set') {
+      clearInterval(voicePoll);
+      if (enVoices().length && location.hash === '#set') renderSettings();
+    }
+  }, 300);
 }
 
 // Tiếng "ting" nhẹ khi chuyển chủ đề / bài (tạo bằng Web Audio, không cần file âm thanh)
@@ -756,7 +772,9 @@ function renderSettings() {
         <select class="grow" data-vkey="${key}" aria-label="${l} voice">${vopts(opt[key])}</select>
         <button class="icon" data-test="${k}" data-sample="${esc(sample)}" aria-label="Test">${ICON_PLAY}</button></div>`).join('')}
       <p class="muted">${vs.length ? 'Auto picks the best American voice. THAI uses a male voice and TRANG a female voice.'
-        : 'No English voices found on this device.'}</p>
+        : 'No voice list yet. Speech still works with the default voice; THAI is made lower in pitch.'}</p>
+      <p class="muted">Voices found: ${vs.length} English / ${allVoiceCount()} total</p>
+      <div class="row"><button class="btn small" id="vReload">Reload voices</button></div>
     </section>
     <section class="sect"><h3>Backup</h3>
       <p class="muted">Data is stored only on this device. Export a backup file regularly.</p>
@@ -792,6 +810,12 @@ function renderSettings() {
   });
   app.querySelectorAll('[data-vkey]').forEach(s => s.onchange = () => { opt[s.dataset.vkey] = s.value; saveOpt(); });
   app.querySelectorAll('[data-test]').forEach(b => b.onclick = () => speak(b.dataset.sample, b.dataset.test));
+  $('#vReload').onclick = () => {
+    if ('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance(' ')); // nhắc máy nạp danh sách giọng
+    renderSettings();
+    if (!enVoices().length) { toast('Loading voices…'); pollVoices(); }
+  };
+  if (!vs.length) pollVoices();
   $('#exp').onclick = exportData;
   $('#imp').onclick = () => $('#fileIn').click();
 }
@@ -887,7 +911,7 @@ function renderTopic(t) {
       const w = t.words.find(x => x.id === learn.dataset.learn);
       w.learned = !w.learned;
       save();
-      learn.classList.toggle('on', w.learned);
+      drawWords(t, q ? q.value : ''); // sắp xếp lại: từ chưa thuộc lên trên
     } else if (edit && editing === t.id) editWord(t, t.words.find(x => x.id === edit.dataset.edit));
   };
   drawWords(t, '');
@@ -903,11 +927,14 @@ function topHeadHtml(t) {
     </div></div>`;
 }
 
+// Từ chưa thuộc ở trên, từ đã thuộc ở dưới (mỗi nhóm giữ thứ tự đăng ký: từ thêm sau ở trên)
 function drawWords(t, q) {
   const ed = editing === t.id;
   q = q.trim().toLowerCase();
   const ws = t.words.filter(w => !q || (w.en + ' ' + w.vi).toLowerCase().includes(q));
-  $('#words').innerHTML = ws.length ? ws.map(w => `
+  const todo = ws.filter(w => !w.learned);
+  const done = ws.filter(w => w.learned);
+  const row = w => `
     <li class="item">
       <button class="icon" data-say="${esc(w.en)}" aria-label="Pronounce">🔊</button>
       <div class="grow" ${ed ? `data-edit="${w.id}" style="cursor:pointer"` : ''}>
@@ -917,7 +944,9 @@ function drawWords(t, q) {
       </div>
       ${ed ? `<span class="pen" data-edit="${w.id}">✎</span>` : ''}
       <button class="icon chk ${w.learned ? 'on' : ''}" data-learn="${w.id}" aria-label="Learned">✓</button>
-    </li>`).join('')
+    </li>`;
+  $('#words').innerHTML = ws.length
+    ? todo.map(row).join('') + (done.length ? `<li class="divider">✓ Learned (${done.length})</li>` + done.map(row).join('') : '')
     : `<li class="empty">${t.words.length ? 'Not found.' : (ed ? 'No words yet. Tap “＋ Add word”.' : 'No words yet. Tap ⚙ to add words.')}</li>`;
 }
 
