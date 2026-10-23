@@ -92,6 +92,12 @@ label,.label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
 select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);min-width:0}
 [data-say]{cursor:pointer}
 .ex .spk{font-style:normal;font-size:13px;margin-right:4px}
+/* Dịch câu ví dụ (Example meaning): ẩn / hiện bằng nút "Example meaning" */
+.exvi{display:block;color:var(--muted);font-size:13px}
+.back .exvi{font-size:14px;margin-top:4px}
+.lsitem .exvi{font-size:14px}
+body.hide-exvi .exvi{display:none!important}
+#dlgBody p{white-space:pre-line}
 /* Các màn hình chiếm vừa 1 màn hình (danh sách cuộn bên trong) */
 main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100vh - var(--hh,57px) - env(safe-area-inset-bottom));height:calc(100dvh - var(--hh,57px) - env(safe-area-inset-bottom))}
 .tlist{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0}
@@ -169,8 +175,9 @@ main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100
 .av{flex:none;width:48px;height:48px;color:var(--tc);overflow:visible;transform-origin:bottom center;transition:transform .3s,filter .3s}
 .av.big{width:68px;height:68px}
 .lnrow.cur .av{transform:scale(1.3);filter:drop-shadow(0 0 4px var(--tc))}
-.sprow{display:flex;align-items:center;gap:12px;margin:10px 0}
-.sprow b{width:64px}
+.sprow{display:flex;align-items:center;gap:12px;margin:12px 0}
+.sprow .spname{margin:0;font-weight:700;color:var(--tc-d)}
+.sprow .row{margin:8px 0 0}
 .ln.you{border-style:dashed}
 .reading{color:var(--tc-d)}
 .reading.kara{color:var(--text)}
@@ -225,6 +232,7 @@ dialog h2{margin:0 0 6px;font-size:19px}
 <input type="file" id="fileIn" accept="application/json,.json" hidden>
 <input type="file" id="bannerIn" accept="image/*" multiple hidden>
 <input type="file" id="avatarIn" accept="image/*" hidden>
+<input type="file" id="xlsIn" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
 <div id="toast"></div>
 
 <script>
@@ -236,8 +244,11 @@ const BANNER_SIZE = 900;  // ảnh màn hình tổng: cạnh dài tối đa 900p
 const BANNER_MAX = 15;    // số ảnh màn hình tổng tối đa (dữ liệu lưu trong máy chỉ được khoảng 5MB)
 const SLIDE_MS = 3000;    // thời gian chuyển ảnh
 const THEMES = [['ocean', 'Ocean'], ['sunset', 'Sunset'], ['lavender', 'Lavender']];
-const SPEAKER = { T: 'THAI', R: 'TRANG' };   // THAI: nam, TRANG: nữ
-const CP_MODES = [['cont', 'Continuous'], ['shadow', 'Shadow'], ['T', 'Be THAI'], ['R', 'Be TRANG']];
+// Người nói trong hội thoại: 'T' = người 1 (giọng nam), 'R' = người 2 (giọng nữ).
+// Tên hiển thị đặt trong Settings → Speakers (mặc định TH / TR); dữ liệu chỉ lưu 'T' / 'R'.
+const SPEAKER_DEFAULT = { T: 'TH', R: 'TR' };
+function spk(s) { return (s === 'T' ? opt.nameT : opt.nameR) || SPEAKER_DEFAULT[s]; }
+const CP_MODES = [['cont', 'Continuous'], ['shadow', 'Shadow'], ['T', ''], ['R', '']]; // '' = "Be <tên người nói>"
 const ICON_PLAY = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
 const ICON_PREV = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>';
@@ -247,13 +258,17 @@ const app = $('#app');
 
 // ===== Dữ liệu =====
 let db = load();
-let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, lsRate: 0.9, cpRate: 0.9, cpMode: 'cont', cpShowVi: true,
-  theme: 'ocean', voiceV: '', voiceT: '', voiceR: '' }, readJSON(OPT_KEY));
+let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, lsRate: 0.9, cpRate: 0.9, cpMode: 'cont', cpShowVi: true, exvi: true,
+  theme: 'ocean', voiceV: '', voiceT: '', voiceR: '', nameT: 'TH', nameR: 'TR' }, readJSON(OPT_KEY));
+if (opt.nameT === 'THAI') opt.nameT = 'TH';   // tên mặc định cũ → tên mặc định mới
+if (opt.nameR === 'TRANG') opt.nameR = 'TR';
 document.documentElement.dataset.theme = opt.theme;
+document.body.classList.toggle('hide-exvi', !opt.exvi);
 let st = null;          // trạng thái phiên học flashcard
 let pl = null;          // trình phát đang mở (Listen từ vựng hoặc Conversation)
 let editing = null;     // id chủ đề đang ở chế độ sửa (null = chế độ xem)
 let ce = null;          // bản nháp khi nhập / sửa bài hội thoại
+let sorting = null;     // danh sách chủ đề đang ở chế độ sắp xếp: 'v' (từ vựng) / 'c' (hội thoại)
 
 function readJSON(key) {
   try { return JSON.parse(localStorage.getItem(key)); } catch (e) { return null; }
@@ -292,6 +307,9 @@ function saveOpt() {
 }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 function topicById(id) { return db.topics.find(t => t.id === id); }
+// Chủ đề từ vựng có thể có chủ đề con: t.subs = [{id, name, words}]. Từ có thể nằm thẳng trong chủ đề (t.words) hoặc trong chủ đề con.
+function subById(t, id) { return (t.subs || []).find(s => s.id === id); }
+function allWords(t) { return t.words.concat(...(t.subs || []).map(s => s.words)); } // tất cả từ của chủ đề (kể cả chủ đề con)
 function convTopicById(id) { return db.conv.find(t => t.id === id); }
 function tcClass(t, list) { return 'tc' + (Math.max((list || db.topics).indexOf(t), 0) % 3); } // màu của chủ đề (luân phiên 3 màu)
 function esc(s) {
@@ -317,15 +335,18 @@ function parseConv(text) {
   if (!lines.length) return { error: 'Enter at least one line' };
   return { lines };
 }
-// Dán văn bản: mỗi dòng 1 câu. Dòng có "THAI:/TRANG:/T:/R:" ở đầu thì theo tên đó,
+// Dán văn bản: mỗi dòng 1 câu. Dòng có "<tên người nói>:" (hoặc THAI:/TRANG:/T:/R:) ở đầu thì theo tên đó,
 // dòng không có tên thì tự xen kẽ với người nói ở câu trước (prev: 'T' / 'R' / null).
 function parseLoose(text, prev) {
   const rows = [];
+  const namesT = [spk('T'), 'THAI', 'T'].map(x => x.toLowerCase());
+  const names = [spk('T'), spk('R'), 'THAI', 'TRANG', 'T', 'R'].map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const re = new RegExp('^(' + names.join('|') + ')\\s*[:：]\\s*(.*)$', 'i');
   text.split(/\r?\n/).forEach(line => {
     line = line.trim();
     if (!line) return;
-    const m = line.match(/^(THAI|TRANG|T|R)\s*[:：]\s*(.*)$/i);
-    const s = m ? (/^(THAI|T)$/i.test(m[1]) ? 'T' : 'R') : (prev === 'T' ? 'R' : 'T');
+    const m = line.match(re);
+    const s = m ? (namesT.includes(m[1].toLowerCase()) ? 'T' : 'R') : (prev === 'T' ? 'R' : 'T');
     const body = m ? m[2] : line;
     const bar = body.indexOf('|');
     const en = (bar < 0 ? body : body.slice(0, bar)).trim();
@@ -367,7 +388,7 @@ function avatarHtml(s, cls) {
     ? `<rect width="48" height="48" fill="#fff"/><image href="${esc(img)}" width="48" height="40" preserveAspectRatio="xMidYMid slice"/>`
     : AV_FACE[s];
   const flip = s === 'R' ? ' transform="translate(48 0) scale(-1 1)"' : '';
-  return `<svg class="av ${cls || ''}" viewBox="0 0 48 48" role="img" aria-label="${SPEAKER[s]}">
+  return `<svg class="av ${cls || ''}" viewBox="0 0 48 48" role="img" aria-label="${esc(spk(s))}">
     <g clip-path="url(#avclip${s})">${inner}</g>
     <path d="${AV_BUBBLE}"${flip} fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>`;
 }
@@ -407,6 +428,28 @@ function resizeImage(file, size, square, quality) {
   });
 }
 
+// ===== Đổi vị trí trong danh sách (nút ↑ / ↓) =====
+function mvBtns(i, n) {
+  return `<button class="icon sm" data-mv="-1" data-i="${i}" aria-label="Move up" ${i ? '' : 'disabled'}>↑</button>` +
+    `<button class="icon sm" data-mv="1" data-i="${i}" aria-label="Move down" ${i < n - 1 ? '' : 'disabled'}>↓</button>`;
+}
+// Đổi chỗ phần tử thứ i với phần tử kề trên (d = -1) / dưới (d = 1), rồi lưu. Trả về true nếu đã đổi.
+function moveIn(list, i, d) {
+  const j = i + d;
+  if (j < 0 || j >= list.length) return false;
+  [list[i], list[j]] = [list[j], list[i]];
+  save();
+  return true;
+}
+// Vẽ lại màn hình nhưng giữ vị trí cuộn của danh sách
+function keepScroll(sel, redraw) {
+  const el = $(sel);
+  const y = el ? el.scrollTop : 0;
+  redraw();
+  const el2 = $(sel);
+  if (el2) el2.scrollTop = y;
+}
+
 // ===== Tiện ích giao diện =====
 let toastTimer;
 function toast(msg) {
@@ -439,6 +482,7 @@ function setBar(title, backHash, actions) {
 // Hộp thoại chung: trả về Promise {btn, v}
 // fields: {name, label, required, en, multi, rows, ph, value, image}  (image: ô chọn ảnh chủ đề)
 // buttons: {label, value, cls, check, run}  (run: chạy ngay khi bấm, ví dụ mở hộp chọn ảnh)
+// field có select: [[giá trị, nhãn], ...] thì hiện ô chọn
 function ask({ title, msg, fields = [], buttons }) {
   return new Promise(resolve => {
     const d = $('#dlg');
@@ -461,7 +505,10 @@ function ask({ title, msg, fields = [], buttons }) {
       }
       const attr = `name="${f.name}" placeholder="${esc(f.ph || '')}" autocomplete="off"` +
         (f.en ? ' autocapitalize="none" spellcheck="false" lang="en"' : '');
-      const input = f.multi
+      const input = f.select // f.select: [[giá trị, nhãn], ...]
+        ? `<select name="${f.name}" style="display:block;width:100%;margin-top:4px">${f.select.map(([v, l]) =>
+            `<option value="${esc(v)}" ${v === (f.value || '') ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`
+        : f.multi
         ? `<textarea ${attr} rows="${f.rows || 2}">${esc(f.value)}</textarea>`
         : `<input ${attr} value="${esc(f.value)}">`;
       return `<label>${esc(f.label)}${f.required ? ' *' : ''}${input}</label>`;
@@ -607,23 +654,25 @@ async function keepAwake(on) {
 
 // ===== Điều hướng =====
 // ''      màn hình tổng      | set  Settings
-// v       chủ đề từ vựng     | t/id  từ vựng của chủ đề | s/id  Study | l, l/id  Listen
+// v       chủ đề từ vựng     | t/id, t/id/con  từ vựng của chủ đề (con) | s/id, s/id/con  Study | l, l/id, l/id/con  Listen
 // c       chủ đề hội thoại   | ct/id bài hội thoại của chủ đề | cp, cp/id, cp/id/bài  phát hội thoại
 window.addEventListener('hashchange', render);
 window.addEventListener('resize', () => document.documentElement.style.setProperty('--hh', $('header').offsetHeight + 'px'));
 function render() {
   const [page, id, id2] = location.hash.slice(1).split('/');
   const t = id && topicById(id);
+  const sub = t && id2 ? subById(t, id2) : null;
   const ct = id && convTopicById(id);
-  if (!((page === 't' || page === 'ct' || page === 'ce') && id === editing)) editing = null; // rời chủ đề thì trở về chế độ xem
+  if (!((page === 't' && (id === editing || id2 === editing)) || ((page === 'ct' || page === 'ce') && id === editing))) editing = null; // rời chủ đề thì trở về chế độ xem
   if (page !== 'l' && page !== 'cp' && pl) { plStop(); pl = null; }        // rời trình phát thì dừng đọc
   if (page !== 'ce') ce = null;                                            // rời màn hình nhập thì bỏ bản nháp
+  sorting = null;                                                          // chuyển màn hình thì thoát chế độ sắp xếp
   clearInterval(slideTimer);                                               // dừng trình chiếu ảnh
   app.className = '';
   if (page === 'v') renderVocab();
-  else if (page === 't' && t) renderTopic(t);
-  else if (page === 's' && t) renderStudy(t);
-  else if (page === 'l') renderListen(t ? t.id : '');
+  else if (page === 't' && t) renderTopic(t, sub);
+  else if (page === 's' && t) renderStudy(t, sub);
+  else if (page === 'l') renderListen(t ? (sub ? t.id + '/' + sub.id : t.id) : '');
   else if (page === 'c') renderConvHome();
   else if (page === 'ct' && ct) renderConvTopic(ct);
   else if (page === 'ce' && ct && (id2 === 'new' || ct.items.some(c => c.id === id2))) renderConvEdit(ct, id2);
@@ -746,7 +795,8 @@ function renderSettings() {
   const vs = enVoices();
   const vopts = cur => '<option value="">Auto</option>' + vs.map(v =>
     `<option value="${esc(v.name)}" ${v.name === cur ? 'selected' : ''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('');
-  const voices = [['V', 'Vocabulary', 'voiceV', 'Hello. This is my voice.'], ['T', 'THAI', 'voiceT', "Hi, I'm Thai. Nice to meet you."], ['R', 'TRANG', 'voiceR', "Hi, I'm Trang. Nice to meet you too."]];
+  const voices = [['V', 'Vocabulary', 'voiceV', 'Hello. This is my voice.'],
+    ['T', spk('T'), 'voiceT', 'Hi, nice to meet you.'], ['R', spk('R'), 'voiceR', 'Nice to meet you too.']];
   app.innerHTML = `
     <section class="sect"><h3>Color theme</h3>
       <div class="row">${THEMES.map(([v, l]) => `<button class="btn grow ${v === opt.theme ? 'primary' : ''}" data-th="${v}">${l}</button>`).join('')}</div>
@@ -761,24 +811,37 @@ function renderSettings() {
       </div>`).join('')}</div>` : ''}
       <div class="row"><button class="btn grow" id="bAdd" ${db.banners.length >= BANNER_MAX ? 'disabled' : ''}>＋ Add images</button></div>
     </section>
-    <section class="sect"><h3>Speaker photos</h3>
-      <p class="muted">Shown next to each line in Conversation. The speaker's photo grows while their line is read.</p>
-      ${['T', 'R'].map(s => `<div class="sprow ${s === 'T' ? 'tc0' : 'tc2'}">${avatarHtml(s, 'big')}<b>${SPEAKER[s]}</b>
-        <button class="btn small" data-av="${s}">${db.avatars[s] ? 'Change' : 'Choose photo'}</button>
-        ${db.avatars[s] ? `<button class="btn small danger" data-avrm="${s}">Remove</button>` : ''}</div>`).join('')}
+    <section class="sect"><h3>Speakers</h3>
+      <p class="muted">Names and photos of the two people in Conversation. Speaker 1 uses a male voice, speaker 2 a female voice.
+        The photo grows while that person's line is read.</p>
+      ${['T', 'R'].map(s => `<div class="sprow ${s === 'T' ? 'tc0' : 'tc2'}">${avatarHtml(s, 'big')}
+        <div class="grow">
+          <input class="spname" data-name="${s}" value="${esc(spk(s))}" maxlength="12" autocomplete="off"
+            aria-label="Name of speaker ${s === 'T' ? 1 : 2}" placeholder="${SPEAKER_DEFAULT[s]}">
+          <div class="row">
+            <button class="btn small" data-av="${s}">${db.avatars[s] ? 'Change photo' : 'Choose photo'}</button>
+            ${db.avatars[s] ? `<button class="btn small danger" data-avrm="${s}">Remove</button>` : ''}
+          </div>
+        </div></div>`).join('')}
     </section>
     <section class="sect"><h3>Voices</h3>
-      ${voices.map(([k, l, key, sample]) => `<div class="vrow"><span class="vl">${l}</span>
+      ${voices.map(([k, l, key, sample]) => `<div class="vrow"><span class="vl">${esc(l)}</span>
         <select class="grow" data-vkey="${key}" aria-label="${l} voice">${vopts(opt[key])}</select>
         <button class="icon" data-test="${k}" data-sample="${esc(sample)}" aria-label="Test">${ICON_PLAY}</button></div>`).join('')}
-      <p class="muted">${vs.length ? 'Auto picks the best American voice. THAI uses a male voice and TRANG a female voice.'
-        : 'No voice list yet. Speech still works with the default voice; THAI is made lower in pitch.'}</p>
+      <p class="muted">${vs.length ? `Auto picks the best American voice. ${esc(spk('T'))} uses a male voice and ${esc(spk('R'))} a female voice.`
+        : `No voice list yet. Speech still works with the default voice; ${esc(spk('T'))} is made lower in pitch.`}</p>
       <p class="muted">Voices found: ${vs.length} English / ${allVoiceCount()} total</p>
       <div class="row"><button class="btn small" id="vReload">Reload voices</button></div>
     </section>
     <section class="sect"><h3>Backup</h3>
       <p class="muted">Data is stored only on this device. Export a backup file regularly.</p>
       <div class="row"><button class="btn grow" id="exp">Export</button><button class="btn grow" id="imp">Import</button></div>
+    </section>
+    <section class="sect"><h3>Import Excel</h3>
+      <p class="muted">Add vocabulary from an .xlsx file. Each sheet becomes a topic (sheet name = topic name).
+        Row 1 must be the header: Subtopic | Word | IPA | Meaning | Example | Example meaning.
+        Word and Meaning are required. Each import creates new topics (existing topics are not changed).</p>
+      <div class="row"><button class="btn grow" id="xls">Import Excel (.xlsx)</button></div>
     </section>`;
   app.querySelectorAll('[data-th]').forEach(b => b.onclick = () => {
     opt.theme = b.dataset.th;
@@ -802,8 +865,15 @@ function renderSettings() {
     renderSettings();
   };
   app.querySelectorAll('[data-av]').forEach(b => b.onclick = () => { avatarFor = b.dataset.av; $('#avatarIn').click(); });
+  app.querySelectorAll('[data-name]').forEach(inp => inp.onchange = () => { // đổi tên người nói (để trống = tên mặc định)
+    const s = inp.dataset.name;
+    opt[s === 'T' ? 'nameT' : 'nameR'] = inp.value.trim() || SPEAKER_DEFAULT[s];
+    saveOpt();
+    renderSettings();
+    toast('Name saved');
+  });
   app.querySelectorAll('[data-avrm]').forEach(b => b.onclick = () => {
-    if (!confirm(`Remove ${SPEAKER[b.dataset.avrm]}'s photo?`)) return;
+    if (!confirm(`Remove ${spk(b.dataset.avrm)}'s photo?`)) return;
     db.avatars[b.dataset.avrm] = '';
     save();
     renderSettings();
@@ -818,6 +888,7 @@ function renderSettings() {
   if (!vs.length) pollVoices();
   $('#exp').onclick = exportData;
   $('#imp').onclick = () => $('#fileIn').click();
+  $('#xls').onclick = () => $('#xlsIn').click();
 }
 
 // Chọn ảnh đại diện THAI / TRANG (cắt vuông, thu nhỏ như ảnh chủ đề)
@@ -834,22 +905,36 @@ $('#avatarIn').onchange = async e => {
 };
 
 // ===== Từ vựng: danh sách chủ đề =====
+// Chế độ sắp xếp (nút ↕): mỗi chủ đề có nút ↑ / ↓ để đổi vị trí, bấm Done để kết thúc.
 function renderVocab() {
   st = null;
-  setBar('Vocabulary', '', [['🎧', 'Listen', () => { location.hash = 'l'; }], ['＋', 'Add topic', addTopic]]);
+  const so = sorting === 'v';
+  setBar('Vocabulary', '', so
+    ? [['Done', 'Finish reordering', () => { sorting = null; renderVocab(); }, 'text']]
+    : [['↕', 'Reorder topics', () => { sorting = 'v'; renderVocab(); }],
+       ['🎧', 'Listen', () => { location.hash = 'l'; }], ['＋', 'Add topic', addTopic]]);
   app.className = 'fill';
   app.innerHTML = `
-    <ul class="list tlist">${db.topics.length ? db.topics.map(t => {
-      const n = t.words.filter(w => w.learned).length;
-      const pct = t.words.length ? Math.round(n * 100 / t.words.length) : 0;
-      return `<li><a class="item topic ${tcClass(t)}" href="#t/${t.id}">
-        ${thumbHtml(t.img)}
-        <div class="grow"><b>${esc(t.name)}</b><small>${t.words.length} words · ${n} learned</small>
-          <div class="bar"><i style="width:${pct}%"></i></div></div>
-        <span class="chev">›</span></a></li>`;
+    ${so ? '<p class="muted">Use ↑ ↓ to change the order. Tap Done when finished.</p>' : ''}
+    <ul class="list tlist">${db.topics.length ? db.topics.map((t, i) => {
+      const ws = allWords(t);
+      const n = ws.filter(w => w.learned).length;
+      const pct = ws.length ? Math.round(n * 100 / ws.length) : 0;
+      const ns = (t.subs || []).length;
+      const inner = `${thumbHtml(t.img)}
+        <div class="grow"><b>${esc(t.name)}</b><small>${ns ? ns + ' subtopics · ' : ''}${ws.length} words · ${n} learned</small>
+          <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+      return so
+        ? `<li><div class="item topic ${tcClass(t)}">${inner}${mvBtns(i, db.topics.length)}</div></li>`
+        : `<li><a class="item topic ${tcClass(t)}" href="#t/${t.id}">${inner}<span class="chev">›</span></a></li>`;
     }).join('') : '<li class="empty">No topics yet.</li>'}</ul>
-    <button class="btn primary block" id="addT">＋ Add topic</button>`;
-  $('#addT').onclick = addTopic;
+    ${so ? '' : '<button class="btn primary block" id="addT">＋ Add topic</button>'}`;
+  if (so) {
+    $('.tlist').onclick = e => {
+      const b = e.target.closest('[data-mv]');
+      if (b && moveIn(db.topics, +b.dataset.i, +b.dataset.mv)) keepScroll('.tlist', renderVocab);
+    };
+  } else $('#addT').onclick = addTopic;
 }
 
 function topicFields(t) {
@@ -873,48 +958,82 @@ async function addTopic() {
   location.hash = 't/' + t.id;
 }
 
-// ===== Từ vựng: màn hình chủ đề =====
+// ===== Từ vựng: màn hình chủ đề / chủ đề con =====
+// Chủ đề: danh sách chủ đề con + các từ nằm thẳng trong chủ đề. Study / Listen gồm cả từ của chủ đề con.
+// Chủ đề con (sub): các từ của chủ đề con đó.
 // Chế độ xem: chỉ học (nghe, đánh dấu đã thuộc). Bấm ⚙ để vào chế độ sửa.
-function renderTopic(t) {
+function renderTopic(t, sub) {
   st = null;
-  const ed = editing === t.id;
-  setBar(t.name, 'v', [ed
-    ? ['Done', 'Finish editing', () => { editing = null; renderTopic(t); }, 'text']
-    : ['⚙', 'Edit topic', () => { editing = t.id; renderTopic(t); }]]);
+  const box = sub || t;                          // nơi chứa các từ đang hiển thị
+  const path = sub ? t.id + '/' + sub.id : t.id; // dùng cho đường dẫn Study / Listen
+  const ed = editing === box.id;
+  const subs = sub ? [] : (t.subs || []);
+  const studyWords = sub ? sub.words : allWords(t);
+  setBar(box.name, sub ? 't/' + t.id : 'v', [ed
+    ? ['Done', 'Finish editing', () => { editing = null; renderTopic(t, sub); }, 'text']
+    : ['⚙', sub ? 'Edit subtopic' : 'Edit topic', () => { editing = box.id; renderTopic(t, sub); }]]);
   app.className = tcClass(t);
   app.innerHTML = `
-    ${ed ? topHeadHtml(t) : ''}
+    ${ed ? (sub ? subHeadHtml(sub) : topHeadHtml(t)) : ''}
     <div class="row">
-      <button class="btn primary grow" id="study" ${t.words.length ? '' : 'disabled'}>▶ Study</button>
+      <button class="btn primary grow" id="study" ${studyWords.length ? '' : 'disabled'}>▶ Study</button>
       ${ed ? '<button class="btn grow" id="addW">＋ Add word</button>'
-           : `<button class="btn grow" id="listen" ${t.words.length ? '' : 'disabled'}>🎧 Listen</button>`}
+           : `<button class="btn grow" id="listen" ${studyWords.length ? '' : 'disabled'}>🎧 Listen</button>`}
     </div>
-    ${ed && t.words.length ? '<p class="muted">Tap a word to edit or delete it.</p>' : ''}
-    ${t.words.length > 5 ? '<input type="search" id="q" placeholder="Search…">' : ''}
-    <ul class="list" id="words"></ul>`;
-  $('#study').onclick = () => { location.hash = 's/' + t.id; };
+    ${ed && !sub ? '<div class="row"><button class="btn grow" id="addS">＋ Add subtopic</button></div>' : ''}
+    ${studyWords.some(w => w.exvi) ? `<div class="opts">${exviChipHtml()}</div>` : ''}
+    ${subs.length ? `<ul class="list" id="subs">${subs.map((s, i) => {
+      const n = s.words.filter(w => w.learned).length;
+      const pct = s.words.length ? Math.round(n * 100 / s.words.length) : 0;
+      const inner = `<div class="grow"><b>${esc(s.name)}</b><small>${s.words.length} words · ${n} learned</small>
+          <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+      // Chế độ sửa: thêm nút ↑ / ↓ để đổi thứ tự chủ đề con (chạm vào tên vẫn mở chủ đề con)
+      return ed
+        ? `<li class="item"><a class="grow" href="#t/${t.id}/${s.id}" style="color:inherit;text-decoration:none">${inner}</a>${mvBtns(i, subs.length)}</li>`
+        : `<li><a class="item" href="#t/${t.id}/${s.id}">${inner}<span class="chev">›</span></a></li>`;
+    }).join('')}</ul>` : ''}
+    ${box.words.length || !subs.length ? `
+      ${subs.length ? '<p class="muted">Words in this topic</p>' : ''}
+      ${ed && box.words.length ? '<p class="muted">Tap a word to edit or delete it.</p>' : ''}
+      ${box.words.length > 5 ? '<input type="search" id="q" placeholder="Search…">' : ''}
+      <ul class="list" id="words"></ul>` : ''}`;
+  $('#study').onclick = () => { location.hash = 's/' + path; };
+  bindExviChip();
   if (ed) {
-    $('#addW').onclick = () => editWord(t, null);
-    $('#editT').onclick = () => editTopic(t);
-    $('#delT').onclick = () => deleteTopic(t, db.topics, 'words', 'v');
+    $('#addW').onclick = () => editWord(t, box, null);
+    if (sub) {
+      $('#editS').onclick = () => renameSub(sub);
+      $('#delS').onclick = () => deleteSub(t, sub);
+    } else {
+      $('#addS').onclick = () => addSub(t);
+      $('#editT').onclick = () => editTopic(t);
+      $('#delT').onclick = () => deleteTopic(t, db.topics, 'words', 'v');
+      const sl = $('#subs');
+      if (sl) sl.onclick = e => {
+        const b = e.target.closest('[data-mv]');
+        if (b && moveIn(t.subs, +b.dataset.i, +b.dataset.mv)) renderTopic(t, sub);
+      };
+    }
   } else {
-    $('#listen').onclick = () => { location.hash = 'l/' + t.id; };
+    $('#listen').onclick = () => { location.hash = 'l/' + path; };
   }
+  const words = $('#words');
+  if (!words) return;
   const q = $('#q');
-  if (q) q.oninput = () => drawWords(t, q.value);
-  $('#words').onclick = e => {
+  if (q) q.oninput = () => drawWords(box, q.value);
+  words.onclick = e => {
     const say = e.target.closest('[data-say]');
     const learn = e.target.closest('[data-learn]');
     const edit = e.target.closest('[data-edit]');
     if (say) speak(say.dataset.say);
     else if (learn) {
-      const w = t.words.find(x => x.id === learn.dataset.learn);
+      const w = box.words.find(x => x.id === learn.dataset.learn);
       w.learned = !w.learned;
       save();
-      drawWords(t, q ? q.value : ''); // sắp xếp lại: từ chưa thuộc lên trên
-    } else if (edit && editing === t.id) editWord(t, t.words.find(x => x.id === edit.dataset.edit));
+      drawWords(box, q ? q.value : ''); // sắp xếp lại: từ chưa thuộc lên trên
+    } else if (edit && editing === box.id) editWord(t, box, box.words.find(x => x.id === edit.dataset.edit));
   };
-  drawWords(t, '');
+  drawWords(box, '');
 }
 
 function topHeadHtml(t) {
@@ -925,6 +1044,64 @@ function topHeadHtml(t) {
         <button class="btn small danger" id="delT">Delete topic</button>
       </div>
     </div></div>`;
+}
+
+function subHeadHtml(sub) {
+  return `<div class="tophead">
+    <div class="grow"><b>${esc(sub.name)}</b>
+      <div class="btns">
+        <button class="btn small" id="editS">Rename subtopic</button>
+        <button class="btn small danger" id="delS">Delete subtopic</button>
+      </div>
+    </div></div>`;
+}
+
+async function addSub(t) {
+  const r = await ask({
+    title: 'Add subtopic',
+    fields: [{ name: 'name', label: 'Subtopic name', required: 1, ph: 'e.g. 1. iPhone Setup' }],
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Add', value: 'ok', check: 1, cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  if (!t.subs) t.subs = [];
+  const s = { id: uid(), name: r.v.name, words: [] };
+  t.subs.push(s);
+  save();
+  editing = s.id; // chủ đề con mới: mở ở chế độ sửa để thêm từ ngay
+  location.hash = 't/' + t.id + '/' + s.id;
+}
+
+async function renameSub(sub) {
+  const r = await ask({
+    title: 'Rename subtopic',
+    fields: [{ name: 'name', label: 'Subtopic name', required: 1, value: sub.name }],
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', check: 1, cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  sub.name = r.v.name;
+  save();
+  render();
+}
+
+function deleteSub(t, sub) {
+  if (!confirm(`Delete subtopic "${sub.name}" and its ${sub.words.length} words?`)) return;
+  t.subs = t.subs.filter(x => x !== sub);
+  save();
+  location.hash = 't/' + t.id;
+}
+
+// Nút ẩn / hiện dịch câu ví dụ (Example meaning), dùng chung cho danh sách từ, Study, Listen
+function exviChipHtml() {
+  return `<button class="chip ${opt.exvi ? 'on' : ''}" id="exviChip">Example meaning</button>`;
+}
+function bindExviChip() {
+  const b = $('#exviChip');
+  if (b) b.onclick = () => {
+    opt.exvi = !opt.exvi;
+    saveOpt();
+    document.body.classList.toggle('hide-exvi', !opt.exvi);
+    b.classList.toggle('on', opt.exvi);
+  };
 }
 
 // Từ chưa thuộc ở trên, từ đã thuộc ở dưới (mỗi nhóm giữ thứ tự đăng ký: từ thêm sau ở trên)
@@ -941,6 +1118,7 @@ function drawWords(t, q) {
         <b ${ed ? '' : `data-say="${esc(w.en)}"`}>${esc(w.en)}</b> ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
         <div>${esc(w.vi)}</div>
         ${w.ex ? `<small class="ex" ${ed ? '' : `data-say="${esc(w.ex)}"`}>${ed ? '' : '<span class="spk">🔈</span>'}${esc(w.ex)}</small>` : ''}
+        ${w.exvi ? `<small class="exvi">${esc(w.exvi)}</small>` : ''}
       </div>
       ${ed ? `<span class="pen" data-edit="${w.id}">✎</span>` : ''}
       <button class="icon chk ${w.learned ? 'on' : ''}" data-learn="${w.id}" aria-label="Learned">✓</button>
@@ -966,70 +1144,89 @@ async function editTopic(t) {
 
 // list: db.topics hoặc db.conv, child: tên mảng con ('words' / 'items'), backHash: màn hình quay về
 function deleteTopic(t, list, child, backHash) {
-  const n = t[child].length;
+  const n = child === 'words' ? allWords(t).length : t[child].length;
   if (!confirm(`Delete topic "${t.name}" and its ${n} ${child === 'words' ? 'words' : 'conversations'}?`)) return;
   list.splice(list.indexOf(t), 1);
   save();
   location.hash = backHash;
 }
 
-async function editWord(t, w) {
+// t: chủ đề, box: nơi đang chứa từ (chủ đề hoặc chủ đề con), w: từ cần sửa (null = thêm mới)
+// Chủ đề có chủ đề con thì có ô "Subtopic" để chọn nơi chứa từ; chọn nơi khác thì từ được chuyển sang đó.
+async function editWord(t, box, w) {
   const isNew = !w;
+  const subs = t.subs || [];
+  const fields = [
+    { name: 'en', label: 'English word', required: 1, en: 1, value: w && w.en },
+    { name: 'ipa', label: 'Pronunciation', en: 1, ph: '/ˈæp.əl/', value: w && w.ipa },
+    { name: 'vi', label: 'Meaning', required: 1, value: w && w.vi },
+    { name: 'ex', label: 'Example', multi: 1, en: 1, value: w && w.ex },
+    { name: 'exvi', label: 'Example meaning', multi: 1, value: w && w.exvi }
+  ];
+  if (subs.length) fields.push({ name: 'sub', label: 'Subtopic', value: box === t ? '' : box.id,
+    select: [['', '(none – directly in topic)']].concat(subs.map(s => [s.id, s.name])) });
   const r = await ask({
     title: isNew ? 'Add word' : 'Edit word',
-    fields: [
-      { name: 'en', label: 'English word', required: 1, en: 1, value: w && w.en },
-      { name: 'ipa', label: 'Pronunciation', en: 1, ph: '/ˈæp.əl/', value: w && w.ipa },
-      { name: 'vi', label: 'Meaning', required: 1, value: w && w.vi },
-      { name: 'ex', label: 'Example', multi: 1, en: 1, value: w && w.ex }
-    ],
+    fields,
     buttons: isNew
       ? [{ label: 'Cancel', value: null }, { label: 'Save & add next', value: 'next', check: 1 }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
       : [{ label: 'Delete', value: 'del', cls: 'danger' }, { label: 'Cancel', value: null }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
   });
   if (r.btn === 'del') {
     if (confirm(`Delete "${w.en}"?`)) {
-      t.words = t.words.filter(x => x !== w);
+      box.words = box.words.filter(x => x !== w);
       save();
       render();
     }
     return;
   }
   if (!r.btn) return;
+  const target = (r.v.sub && subById(t, r.v.sub)) || t; // nơi chứa từ sau khi lưu
+  delete r.v.sub;
   if (isNew) {
-    const dup = t.words.some(x => x.en.toLowerCase() === r.v.en.toLowerCase());
-    if (dup && !confirm(`"${r.v.en}" already exists in this topic. Add anyway?`)) return;
-    t.words.unshift(Object.assign({ id: uid(), learned: false }, r.v));
-    toast('Added: ' + r.v.en);
+    const dup = target.words.some(x => x.en.toLowerCase() === r.v.en.toLowerCase());
+    if (dup && !confirm(`"${r.v.en}" already exists in "${target.name}". Add anyway?`)) return;
+    target.words.unshift(Object.assign({ id: uid(), learned: false }, r.v));
+    toast(target === box ? 'Added: ' + r.v.en : `Added to "${target.name}": ${r.v.en}`);
   } else {
     Object.assign(w, r.v);
+    if (target !== box) { // chuyển từ sang chủ đề / chủ đề con khác (giữ nguyên trạng thái đã thuộc)
+      box.words = box.words.filter(x => x !== w);
+      target.words.unshift(w);
+      toast(`Moved to "${target.name}"`);
+    }
   }
   save();
   render();
-  if (r.btn === 'next') editWord(t, null);
+  if (r.btn === 'next') editWord(t, target, null);
 }
 
 // ===== Học flashcard =====
-function buildDeck(t) {
-  const ids = t.words.filter(w => !opt.onlyNew || !w.learned).map(w => w.id);
+// words: các từ cần học; key: id của chủ đề / chủ đề con đang học
+function buildDeck(words, key) {
+  const ids = words.filter(w => !opt.onlyNew || !w.learned).map(w => w.id);
   if (opt.shuffle) {
     for (let i = ids.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [ids[i], ids[j]] = [ids[j], ids[i]];
     }
   }
-  st = { tid: t.id, ids, i: 0, flip: false };
+  st = { tid: key, ids, i: 0, flip: false };
 }
 
-function renderStudy(t) {
-  setBar('Study: ' + t.name, 't/' + t.id, []);
-  if (!st || st.tid !== t.id) buildDeck(t);
-  st.ids = st.ids.filter(id => t.words.some(w => w.id === id)); // bỏ từ đã bị xóa
+// Chủ đề: học tất cả từ (kể cả chủ đề con). Chủ đề con: chỉ từ của chủ đề con đó.
+function renderStudy(t, sub) {
+  const box = sub || t;
+  const words = sub ? sub.words : allWords(t);
+  setBar('Study: ' + box.name, 't/' + t.id + (sub ? '/' + sub.id : ''), []);
+  if (!st || st.tid !== box.id) buildDeck(words, box.id);
+  st.ids = st.ids.filter(id => words.some(w => w.id === id)); // bỏ từ đã bị xóa
   const opts = `
     <div class="opts">
       <button class="chip" data-o="dir">${opt.dir === 'en' ? 'EN → Meaning' : 'Meaning → EN'}</button>
       <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Shuffle</button>
       <button class="chip ${opt.onlyNew ? 'on' : ''}" data-o="onlyNew">Not learned only</button>
+      ${words.some(w => w.exvi) ? exviChipHtml() : ''}
     </div>`;
   const n = st.ids.length;
   let body;
@@ -1039,11 +1236,12 @@ function renderStudy(t) {
     body = `<div class="done"><div class="big">🎉 Done!</div><p>You have gone through all ${n} cards.</p>
       <button class="btn primary" id="again">Study again</button></div>`;
   } else {
-    const w = t.words.find(x => x.id === st.ids[st.i]);
+    const w = words.find(x => x.id === st.ids[st.i]);
     const enHtml = `<div class="big">${esc(w.en)}</div>${w.ipa ? `<div class="ipa">${esc(w.ipa)}</div>` : ''}`;
     const viHtml = `<div class="${opt.dir === 'vi' ? 'big' : ''}">${esc(w.vi)}</div>`;
     const front = opt.dir === 'en' ? enHtml : viHtml;
-    const back = (opt.dir === 'en' ? viHtml : enHtml) + (w.ex ? `<div class="ex">${esc(w.ex)}</div>` : '');
+    const back = (opt.dir === 'en' ? viHtml : enHtml) + (w.ex ? `<div class="ex">${esc(w.ex)}</div>` : '') +
+      (w.exvi ? `<div class="exvi">${esc(w.exvi)}</div>` : '');
     body = `
       <p class="prog">${st.i + 1} / ${n}</p>
       <div class="card" id="card">
@@ -1062,7 +1260,7 @@ function renderStudy(t) {
       <p class="muted" style="text-align:center">Swipe left / right on the card to change words</p>`;
     setTimeout(() => {
       const card = $('#card');
-      card.onclick = () => { st.flip = !st.flip; renderStudy(t); };
+      card.onclick = () => { st.flip = !st.flip; renderStudy(t, sub); };
       let x0 = null;
       card.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
       card.addEventListener('touchend', e => {
@@ -1074,37 +1272,52 @@ function renderStudy(t) {
       });
       $('#say').onclick = () => speak(w.en);
       if (w.ex) $('#sayEx').onclick = () => speak(w.ex);
-      $('#learn').onclick = () => { w.learned = !w.learned; save(); renderStudy(t); };
+      $('#learn').onclick = () => { w.learned = !w.learned; save(); renderStudy(t, sub); };
       $('#prev').onclick = () => go(-1);
       $('#next').onclick = () => go(1);
     });
   }
   app.className = tcClass(t);
   app.innerHTML = opts + body;
+  bindExviChip();
   app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
     const k = b.dataset.o;
     opt[k] = k === 'dir' ? (opt.dir === 'en' ? 'vi' : 'en') : !opt[k];
     saveOpt();
-    if (k === 'dir') st.flip = false; else buildDeck(t);
-    renderStudy(t);
+    if (k === 'dir') st.flip = false; else buildDeck(words, box.id);
+    renderStudy(t, sub);
   });
   const again = $('#again');
-  if (again) again.onclick = () => { buildDeck(t); renderStudy(t); };
+  if (again) again.onclick = () => { buildDeck(words, box.id); renderStudy(t, sub); };
 
-  function go(d) { st.i += d; st.flip = false; renderStudy(t); }
+  function go(d) { st.i += d; st.flip = false; renderStudy(t, sub); }
 }
 
 // ===== Hội thoại: danh sách chủ đề =====
+// Chế độ sắp xếp (nút ↕) giống màn hình Vocabulary
 function renderConvHome() {
-  setBar('Conversation', '', [['🎧', 'Play all', () => { location.hash = 'cp'; }], ['＋', 'Add topic', addConvTopic]]);
+  const so = sorting === 'c';
+  setBar('Conversation', '', so
+    ? [['Done', 'Finish reordering', () => { sorting = null; renderConvHome(); }, 'text']]
+    : [['↕', 'Reorder topics', () => { sorting = 'c'; renderConvHome(); }],
+       ['🎧', 'Play all', () => { location.hash = 'cp'; }], ['＋', 'Add topic', addConvTopic]]);
   app.className = 'fill';
   app.innerHTML = `
-    <ul class="list tlist">${db.conv.length ? db.conv.map(t => `<li><a class="item topic ${tcClass(t, db.conv)}" href="#ct/${t.id}">
-        ${thumbHtml(t.img)}
-        <div class="grow"><b>${esc(t.name)}</b><small>${t.items.length} conversations</small></div>
-        <span class="chev">›</span></a></li>`).join('') : '<li class="empty">No topics yet.</li>'}</ul>
-    <button class="btn primary block" id="addT">＋ Add topic</button>`;
-  $('#addT').onclick = addConvTopic;
+    ${so ? '<p class="muted">Use ↑ ↓ to change the order. Tap Done when finished.</p>' : ''}
+    <ul class="list tlist">${db.conv.length ? db.conv.map((t, i) => {
+      const inner = `${thumbHtml(t.img)}
+        <div class="grow"><b>${esc(t.name)}</b><small>${t.items.length} conversations</small></div>`;
+      return so
+        ? `<li><div class="item topic ${tcClass(t, db.conv)}">${inner}${mvBtns(i, db.conv.length)}</div></li>`
+        : `<li><a class="item topic ${tcClass(t, db.conv)}" href="#ct/${t.id}">${inner}<span class="chev">›</span></a></li>`;
+    }).join('') : '<li class="empty">No topics yet.</li>'}</ul>
+    ${so ? '' : '<button class="btn primary block" id="addT">＋ Add topic</button>'}`;
+  if (so) {
+    $('.tlist').onclick = e => {
+      const b = e.target.closest('[data-mv]');
+      if (b && moveIn(db.conv, +b.dataset.i, +b.dataset.mv)) keepScroll('.tlist', renderConvHome);
+    };
+  } else $('#addT').onclick = addConvTopic;
 }
 
 async function addConvTopic() {
@@ -1134,11 +1347,11 @@ function renderConvTopic(t) {
       <button class="btn primary grow" id="playAll" ${t.items.length ? '' : 'disabled'}>🎧 Play all</button>
       ${ed ? '<button class="btn grow" id="addC">＋ Add conversation</button>' : ''}
     </div>
-    ${ed && t.items.length ? '<p class="muted">Tap a conversation to edit or delete it.</p>' : ''}
-    <ul class="list" id="convs">${t.items.length ? t.items.map(c => `
+    ${ed && t.items.length ? '<p class="muted">Tap a conversation to edit or delete it. Use ↑ ↓ to change the order.</p>' : ''}
+    <ul class="list" id="convs">${t.items.length ? t.items.map((c, i) => `
       <li class="item" data-c="${c.id}" style="cursor:pointer">
         <div class="grow"><b>${esc(c.title)}</b><small>${c.lines.length} lines</small></div>
-        <span class="${ed ? 'pen' : 'chev'}">${ed ? '✎' : '›'}</span>
+        ${ed ? mvBtns(i, t.items.length) + '<span class="pen">✎</span>' : '<span class="chev">›</span>'}
       </li>`).join('')
       : `<li class="empty">${ed ? 'No conversations yet. Tap “＋ Add conversation”.' : 'No conversations yet. Tap ⚙ to add.'}</li>`}</ul>`;
   $('#playAll').onclick = () => { location.hash = 'cp/' + t.id; };
@@ -1148,6 +1361,8 @@ function renderConvTopic(t) {
     $('#delT').onclick = () => deleteTopic(t, db.conv, 'items', 'c');
   }
   $('#convs').onclick = e => {
+    const mv = e.target.closest('[data-mv]');
+    if (mv) { if (moveIn(t.items, +mv.dataset.i, +mv.dataset.mv)) renderConvTopic(t); return; } // đổi thứ tự bài
     const li = e.target.closest('[data-c]');
     if (!li) return;
     const c = t.items.find(x => x.id === li.dataset.c);
@@ -1178,14 +1393,14 @@ function renderConvEdit(t, cid) {
     <label>Title *<input id="ceTitle" value="${esc(ce.title)}" placeholder="e.g. At the cafe" autocomplete="off"></label>
     <div id="ceRows"></div>
     <div class="row addrow">
-      <button class="btn grow tc0" id="ceAddT">＋ THAI</button>
-      <button class="btn grow tc2" id="ceAddR">＋ TRANG</button>
+      <button class="btn grow tc0" id="ceAddT">＋ ${esc(spk('T'))}</button>
+      <button class="btn grow tc2" id="ceAddR">＋ ${esc(spk('R'))}</button>
     </div>
     <div class="row">
       <button class="btn grow" id="cePaste">Paste text</button>
       ${c ? '<button class="btn grow danger" id="ceDel">Delete</button>' : ''}
     </div>
-    <p class="muted">Tap a name to switch THAI ⇄ TRANG. Press Return after a sentence to add the next one for the other person.</p>`;
+    <p class="muted">Tap a name to switch ${esc(spk('T'))} ⇄ ${esc(spk('R'))}. Press Return after a sentence to add the next one for the other person.</p>`;
   $('#ceTitle').oninput = e => { ce.title = e.target.value; ce.dirty = true; };
   $('#ceAddT').onclick = () => ceAdd('T', ce.rows.length);
   $('#ceAddR').onclick = () => ceAdd('R', ce.rows.length);
@@ -1230,7 +1445,7 @@ function ceDraw(focus) {
   $('#ceRows').innerHTML = ce.rows.map((r, i) => `
     <div class="cerow ${r.s} ${r.s === 'T' ? 'tc0' : 'tc2'}" data-i="${i}">
       <div class="cetop">
-        <button class="who-btn" data-act="sw" aria-label="Switch speaker">${SPEAKER[r.s]}</button>
+        <button class="who-btn" data-act="sw" aria-label="Switch speaker">${esc(spk(r.s))}</button>
         <span class="grow"></span>
         <button class="icon sm" data-act="up" aria-label="Move up" ${i ? '' : 'disabled'}>↑</button>
         <button class="icon sm" data-act="down" aria-label="Move down" ${i < n - 1 ? '' : 'disabled'}>↓</button>
@@ -1261,8 +1476,8 @@ function ceAdd(s, at) {
 async function cePaste() {
   const r = await ask({
     title: 'Paste text',
-    msg: 'One sentence per line. Lines without a name alternate between THAI and TRANG. ' +
-      'To set the speaker, start a line with THAI: / TRANG: (or T: / R:). Add the meaning after |.',
+    msg: `One sentence per line. Lines without a name alternate between ${spk('T')} and ${spk('R')}. ` +
+      `To set the speaker, start a line with ${spk('T')}: / ${spk('R')}: (or T: / R:). Add the meaning after |.`,
     fields: [{ name: 'text', label: 'Text', required: 1, multi: 1, rows: 8,
       ph: "Hi, how are you?\nI'm fine, thanks. | Mình khỏe, cảm ơn." }],
     buttons: [{ label: 'Cancel', value: null }, { label: 'Add', value: 'ok', check: 1, cls: 'primary' }]
@@ -1446,13 +1661,20 @@ document.addEventListener('visibilitychange', () => {
 // ===== Listen: nghe tự động từ vựng (shadowing) =====
 // Mỗi từ: đọc từ → nghỉ 1 giây → đọc câu ví dụ → nghỉ 3 giây → từ tiếp theo.
 // Chuyển sang chủ đề khác thì kêu "ting". Đọc hết thì dừng.
+// scope: '' tất cả | id chủ đề (gồm cả chủ đề con) | id chủ đề/id chủ đề con
 function renderListen(scope) {
+  const [tid, sid] = scope ? scope.split('/') : [];
   setBar('Listen', scope ? 't/' + scope : 'v', []);
   if (!pl || pl.kind !== 'l' || pl.key !== scope) {
     if (pl) plStop();
     const items = [];
-    db.topics.filter(t => !scope || t.id === scope).forEach(t => {
-      t.words.forEach(w => items.push({ tid: t.id, tname: t.name, tc: tcClass(t), w }));
+    db.topics.filter(t => !tid || t.id === tid).forEach(t => {
+      // Mỗi nhóm: từ nằm thẳng trong chủ đề, rồi từng chủ đề con. Sang nhóm khác thì kêu "ting".
+      const groups = [{ id: t.id, name: t.name, words: t.words }]
+        .concat((t.subs || []).map(s => ({ id: s.id, name: t.name + ' › ' + s.name, words: s.words })));
+      groups.filter(g => !sid || g.id === sid).forEach(g => {
+        g.words.forEach(w => items.push({ tid: g.id, tname: g.name, tc: tcClass(t), w }));
+      });
     });
     pl = { kind: 'l', key: scope, items, i: 0, playing: false, done: false, resume: false, token: 0, run: runVocab };
   }
@@ -1463,7 +1685,12 @@ function renderListen(scope) {
     <div class="row plopts">
       <select id="lsScope" class="grow" aria-label="Topics">
         <option value="">All topics</option>
-        ${db.topics.map(t => `<option value="${t.id}" ${t.id === scope ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
+        ${db.topics.map(t => (t.subs || []).length
+          ? `<optgroup label="${esc(t.name)}">
+              <option value="${t.id}" ${t.id === scope ? 'selected' : ''}>All in ${esc(t.name)}</option>
+              ${t.subs.map(s => `<option value="${t.id}/${s.id}" ${t.id + '/' + s.id === scope ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}
+            </optgroup>`
+          : `<option value="${t.id}" ${t.id === scope ? 'selected' : ''}>${esc(t.name)}</option>`).join('')}
       </select>
       <select id="lsRate" aria-label="Speed">
         ${[0.7, 0.9, 1].map(r => `<option value="${r}" ${r === opt.lsRate ? 'selected' : ''}>${r.toFixed(1)}x</option>`).join('')}
@@ -1476,9 +1703,12 @@ function renderListen(scope) {
         ${partHtml('en', it.w.en)}
         <div class="vi">${esc(it.w.vi)}</div>
         ${it.w.ex ? partHtml('ex', it.w.ex) : ''}
+        ${it.w.exvi ? `<div class="exvi">${esc(it.w.exvi)}</div>` : ''}
       </div>`;
     }).join('') : '<p class="empty">No words to listen to.</p>'}</div>
     ${plBarHtml(n)}`;
+  if (pl.items.some(it => it.w.exvi)) $('.plopts').insertAdjacentHTML('afterend', `<div class="opts">${exviChipHtml()}</div>`);
+  bindExviChip();
   $('#lsScope').onchange = e => { location.hash = e.target.value ? 'l/' + e.target.value : 'l'; };
   $('#lsRate').onchange = e => { opt.lsRate = parseFloat(e.target.value); saveOpt(); };
   plBind();
@@ -1537,7 +1767,7 @@ function renderConvPlay(key) {
         ${[0.7, 0.9, 1].map(r => `<option value="${r}" ${r === opt.cpRate ? 'selected' : ''}>${r.toFixed(1)}x</option>`).join('')}
       </select>
     </div>
-    <div class="opts">${CP_MODES.map(([v, l]) => `<button class="chip ${opt.cpMode === v ? 'on' : ''}" data-m="${v}">${l}</button>`).join('')}
+    <div class="opts">${CP_MODES.map(([v, l]) => `<button class="chip ${opt.cpMode === v ? 'on' : ''}" data-m="${v}">${l || 'Be ' + esc(spk(v))}</button>`).join('')}
       <button class="chip ${opt.cpShowVi ? 'on' : ''}" id="cpVi">Meaning</button></div>
     <div class="plist ${opt.cpShowVi ? '' : 'hide-vi'}" id="plist">${n ? pl.items.map((it, k) => {
       const head = it.cid !== last ? `<div class="lshead ${it.tc}">${esc(it.ctitle)}<small>${esc(it.tname)}</small></div>` : '';
@@ -1591,6 +1821,275 @@ async function runConv(k, ok) {
   return true;
 }
 
+// ===== Import Excel (.xlsx) =====
+// File .xlsx là file zip chứa các file XML. App tự giải nén và đọc, không cần thư viện ngoài (chạy offline).
+// Mỗi sheet = 1 chủ đề (tên sheet). Dòng 1 = tiêu đề; cột nhận theo chữ trong tiêu đề, thứ tự cột tùy ý.
+
+// Giải nén dữ liệu DEFLATE. Máy có DecompressionStream thì dùng, không có thì dùng hàm tự viết bên dưới.
+async function inflate(data) {
+  if (window.DecompressionStream) {
+    try {
+      const s = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(s).arrayBuffer());
+    } catch (e) { /* máy không hỗ trợ deflate-raw: dùng hàm tự viết */ }
+  }
+  return inflateRaw(data);
+}
+
+// Giải nén DEFLATE (RFC 1951)
+const LBASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+const LEXT = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+const DBASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+const DEXT = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+function inflateRaw(src) {
+  let pos = 0, bitBuf = 0, bitCnt = 0, len = 0;
+  let out = new Uint8Array(src.length * 4 + 1024);
+  const put = b => {
+    if (len >= out.length) { const n = new Uint8Array(out.length * 2); n.set(out); out = n; }
+    out[len++] = b;
+  };
+  const bits = n => {
+    while (bitCnt < n) {
+      if (pos >= src.length) throw new Error('inflate: unexpected end');
+      bitBuf |= src[pos++] << bitCnt;
+      bitCnt += 8;
+    }
+    const v = bitBuf & ((1 << n) - 1);
+    bitBuf >>>= n;
+    bitCnt -= n;
+    return v;
+  };
+  const build = lengths => { // bảng Huffman: số mã theo độ dài + danh sách ký hiệu
+    const counts = new Uint16Array(16), offs = new Uint16Array(16), syms = new Uint16Array(lengths.length);
+    for (let i = 0; i < lengths.length; i++) counts[lengths[i]]++;
+    counts[0] = 0;
+    for (let i = 1; i < 16; i++) offs[i] = offs[i - 1] + counts[i - 1];
+    for (let i = 0; i < lengths.length; i++) if (lengths[i]) syms[offs[lengths[i]]++] = i;
+    return { counts, syms };
+  };
+  const decode = h => {
+    let code = 0, first = 0, index = 0;
+    for (let l = 1; l < 16; l++) {
+      code |= bits(1);
+      const c = h.counts[l];
+      if (code - c < first) return h.syms[index + (code - first)];
+      index += c;
+      first = (first + c) << 1;
+      code <<= 1;
+    }
+    throw new Error('inflate: bad code');
+  };
+  let last;
+  do {
+    last = bits(1);
+    const type = bits(2);
+    if (type === 0) { // không nén
+      bitBuf = 0; bitCnt = 0;
+      const n = src[pos] | (src[pos + 1] << 8);
+      pos += 4;
+      for (let i = 0; i < n; i++) put(src[pos++]);
+    } else if (type === 1 || type === 2) {
+      let lit, dist;
+      if (type === 1) { // bảng Huffman cố định
+        const l = new Uint8Array(288);
+        l.fill(8, 0, 144); l.fill(9, 144, 256); l.fill(7, 256, 280); l.fill(8, 280, 288);
+        lit = build(l);
+        dist = build(new Uint8Array(30).fill(5));
+      } else { // bảng Huffman động
+        const hlit = bits(5) + 257, hdist = bits(5) + 1, hclen = bits(4) + 4;
+        const order = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+        const cl = new Uint8Array(19);
+        for (let i = 0; i < hclen; i++) cl[order[i]] = bits(3);
+        const clh = build(cl);
+        const lens = new Uint8Array(hlit + hdist);
+        for (let i = 0; i < hlit + hdist;) {
+          const sym = decode(clh);
+          if (sym < 16) lens[i++] = sym;
+          else {
+            let rep, val = 0;
+            if (sym === 16) { val = lens[i - 1]; rep = 3 + bits(2); }
+            else if (sym === 17) rep = 3 + bits(3);
+            else rep = 11 + bits(7);
+            while (rep--) lens[i++] = val;
+          }
+        }
+        lit = build(lens.subarray(0, hlit));
+        dist = build(lens.subarray(hlit));
+      }
+      for (;;) {
+        let sym = decode(lit);
+        if (sym < 256) put(sym);
+        else if (sym === 256) break;
+        else {
+          sym -= 257;
+          const l = LBASE[sym] + bits(LEXT[sym]);
+          const ds = decode(dist);
+          const d = DBASE[ds] + bits(DEXT[ds]);
+          for (let k = 0; k < l; k++) put(out[len - d]);
+        }
+      }
+    } else throw new Error('inflate: bad block');
+  } while (!last);
+  return out.subarray(0, len);
+}
+
+// Đọc danh sách file trong zip (theo mục lục cuối file zip)
+function unzip(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  let e = u8.length - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error('not a zip file');
+  const count = dv.getUint16(e + 10, true);
+  let p = dv.getUint32(e + 16, true);
+  const files = {};
+  for (let i = 0; i < count; i++) {
+    const method = dv.getUint16(p + 10, true), size = dv.getUint32(p + 20, true);
+    const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+    const off = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nl));
+    const start = off + 30 + dv.getUint16(off + 26, true) + dv.getUint16(off + 28, true);
+    files[name] = { method, data: u8.subarray(start, start + size) };
+    p += 46 + nl + xl + cl;
+  }
+  return {
+    async text(name) {
+      const f = files[name];
+      if (!f) return null;
+      return new TextDecoder().decode(f.method === 0 ? f.data : await inflate(f.data));
+    }
+  };
+}
+
+// Trả về [{name: tên sheet, rows: [[ô A, ô B, ...], ...]}]
+async function readXlsx(file) {
+  const z = unzip(await file.arrayBuffer());
+  const xml = s => new DOMParser().parseFromString(s, 'application/xml');
+  const wbText = await z.text('xl/workbook.xml');
+  if (!wbText) throw new Error('not an xlsx file');
+  const wb = xml(wbText);
+  const target = {};
+  const relText = await z.text('xl/_rels/workbook.xml.rels');
+  if (relText) [...xml(relText).getElementsByTagName('Relationship')].forEach(r => { target[r.getAttribute('Id')] = r.getAttribute('Target'); });
+  const ssText = await z.text('xl/sharedStrings.xml');
+  const shared = ssText ? [...xml(ssText).getElementsByTagName('si')].map(si => [...si.getElementsByTagName('t')].map(t => t.textContent).join('')) : [];
+  const sheets = [];
+  for (const s of wb.getElementsByTagName('sheet')) {
+    const rid = s.getAttribute('r:id') || s.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'id');
+    const tg = target[rid] || '';
+    const path = tg.startsWith('/') ? tg.slice(1) : 'xl/' + tg.replace(/^\.\//, '');
+    const text = await z.text(path);
+    if (!text) continue;
+    const rows = [];
+    for (const r of xml(text).getElementsByTagName('row')) {
+      const row = [];
+      let idx = 0;
+      for (const c of r.getElementsByTagName('c')) {
+        const ref = c.getAttribute('r');
+        if (ref) idx = colIndex(ref);
+        const t = c.getAttribute('t');
+        let v = '';
+        if (t === 'inlineStr') v = [...c.getElementsByTagName('t')].map(e => e.textContent).join('');
+        else {
+          const ve = c.getElementsByTagName('v')[0];
+          v = ve ? ve.textContent : '';
+          if (t === 's') v = shared[+v] || '';
+        }
+        row[idx++] = v.trim();
+      }
+      rows.push(row);
+    }
+    sheets.push({ name: (s.getAttribute('name') || '').trim(), rows });
+  }
+  return sheets;
+}
+function colIndex(ref) { // "C12" → 2
+  const m = /^[A-Z]+/.exec(ref);
+  let n = 0;
+  for (const ch of m[0]) n = n * 26 + ch.charCodeAt(0) - 64;
+  return n - 1;
+}
+
+// Nhận cột theo chữ trong tiêu đề (tiếng Anh hoặc tiếng Việt). Thứ tự kiểm tra quan trọng: "Example meaning" trước "Example".
+const XL_HEAD = [
+  ['exvi', /(example meaning|translation|dịch)/i],
+  ['sub', /^(sub ?topic|topic|chủ đề)/i],
+  ['ipa', /(ipa|pronunciation|phiên âm)/i],
+  ['en', /^(word|vocabulary|từ)/i],
+  ['vi', /^(meaning|nghĩa)/i],
+  ['ex', /^(example|ví dụ)/i]
+];
+function planXlsx(sheets) {
+  const plan = [], skipped = [];
+  sheets.forEach(sh => {
+    const map = {};
+    (sh.rows[0] || []).forEach((h, i) => {
+      if (!h) return;
+      const hit = XL_HEAD.find(([k, re]) => map[k] == null && re.test(h));
+      if (hit) map[hit[0]] = i;
+    });
+    if (map.en == null || map.vi == null) { skipped.push(sh.name); return; }
+    const words = sh.rows.slice(1).map(r => {
+      const g = k => map[k] == null ? '' : (r[map[k]] || '');
+      return { sub: g('sub'), en: g('en'), ipa: g('ipa'), vi: g('vi'), ex: g('ex'), exvi: g('exvi') };
+    }).filter(w => w.en);
+    plan.push({ topic: sh.name || 'Imported', words });
+  });
+  return { plan, skipped };
+}
+// Mỗi sheet luôn tạo 1 chủ đề MỚI (không gộp vào chủ đề đã có). Trùng tên với chủ đề đã có thì thêm số: "iPhone (2)".
+// Dòng trùng ngay trong file (cùng từ tiếng Anh, cùng chủ đề con) chỉ thêm 1 lần.
+function applyXlsx(topics, plan) {
+  const res = { added: 0, dup: 0, subsNew: 0, names: [] };
+  const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+  plan.forEach(p => {
+    let name = p.topic;
+    for (let n = 2; topics.some(x => same(x.name, name)); n++) name = `${p.topic} (${n})`;
+    const t = { id: uid(), name, img: '', words: [], subs: [] };
+    topics.push(t);
+    res.names.push(name);
+    p.words.forEach(w => {
+      let box = t;
+      if (w.sub) {
+        box = t.subs.find(s => same(s.name, w.sub));
+        if (!box) { box = { id: uid(), name: w.sub, words: [] }; t.subs.push(box); res.subsNew++; }
+      }
+      if (box.words.some(x => same(x.en, w.en))) { res.dup++; return; }
+      box.words.push({ id: uid(), en: w.en, ipa: w.ipa, vi: w.vi, ex: w.ex, exvi: w.exvi, learned: false });
+      res.added++;
+    });
+  });
+  return res;
+}
+
+$('#xlsIn').onchange = async e => {
+  const f = e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  if (!/\.xlsx$/i.test(f.name)) { alert('Please choose an Excel file saved as .xlsx'); return; }
+  let sheets;
+  try { sheets = await readXlsx(f); }
+  catch (err) { alert('Could not read this file. Please save it as .xlsx and try again.'); return; }
+  const { plan, skipped } = planXlsx(sheets);
+  if (!plan.length) {
+    alert('No sheet with "Word" and "Meaning" columns was found.\n\nRow 1 should be:\nSubtopic | Word | IPA | Meaning | Example | Example meaning');
+    return;
+  }
+  const preview = applyXlsx(JSON.parse(JSON.stringify(db.topics)), plan); // chạy thử trên bản sao để đếm
+  const r = await ask({
+    title: 'Import Excel',
+    msg: `New topic${preview.names.length > 1 ? 's' : ''}: ${preview.names.join(', ')}` +
+      `\nSubtopics: ${preview.subsNew}\nWords: ${preview.added}` +
+      (preview.dup ? `\nDuplicate rows in the file (skipped): ${preview.dup}` : '') +
+      (skipped.length ? `\nSkipped sheets: ${skipped.join(', ')}` : ''),
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Import', value: 'ok', cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  const res = applyXlsx(db.topics, plan);
+  if (!save()) return;
+  toast(`Imported ${res.added} words`);
+  location.hash = 'v';
+};
+
 // ===== Sao lưu / khôi phục =====
 async function exportData() {
   const now = new Date();
@@ -1617,13 +2116,16 @@ async function exportData() {
 }
 
 function normalize(d) {
+  const words = list => (Array.isArray(list) ? list : []).filter(w => w && w.en).map(w => ({
+    id: uid(), en: String(w.en), ipa: String(w.ipa || ''), vi: String(w.vi || ''), ex: String(w.ex || ''),
+    exvi: String(w.exvi || ''), learned: !!w.learned
+  }));
   return (d.topics || []).filter(t => t && t.name).map(t => ({
     id: uid(),
     name: String(t.name),
     img: isImg(t.img) ? t.img : '',
-    words: (Array.isArray(t.words) ? t.words : []).filter(w => w && w.en).map(w => ({
-      id: uid(), en: String(w.en), ipa: String(w.ipa || ''), vi: String(w.vi || ''), ex: String(w.ex || ''), learned: !!w.learned
-    }))
+    words: words(t.words),
+    subs: (Array.isArray(t.subs) ? t.subs : []).filter(s => s && s.name).map(s => ({ id: uid(), name: String(s.name), words: words(s.words) }))
   }));
 }
 
@@ -1660,7 +2162,7 @@ $('#fileIn').onchange = async e => {
   }
   const r = await ask({
     title: 'Import data',
-    msg: `The file has ${topics.length} vocabulary topics (${topics.reduce((s, t) => s + t.words.length, 0)} words) and ` +
+    msg: `The file has ${topics.length} vocabulary topics (${topics.reduce((s, t) => s + allWords(t).length, 0)} words) and ` +
       `${conv.length} conversation topics (${conv.reduce((s, t) => s + t.items.length, 0)} conversations). What do you want to do?`,
     buttons: [{ label: 'Cancel', value: null }, { label: 'Replace all', value: 'rep', cls: 'danger' }, { label: 'Merge', value: 'merge', cls: 'primary' }]
   });
@@ -1674,8 +2176,14 @@ $('#fileIn').onchange = async e => {
       const t = db.topics.find(x => x.name.toLowerCase() === nt.name.toLowerCase());
       if (!t) { db.topics.push(nt); return; }
       if (!t.img && nt.img) t.img = nt.img;
-      nt.words.forEach(w => {
-        if (!t.words.some(x => x.en.toLowerCase() === w.en.toLowerCase())) t.words.push(w);
+      const mergeWords = (box, list) => list.forEach(w => {
+        if (!box.words.some(x => x.en.toLowerCase() === w.en.toLowerCase())) box.words.push(w);
+      });
+      mergeWords(t, nt.words);
+      if (!t.subs) t.subs = [];
+      nt.subs.forEach(ns => {
+        const s = t.subs.find(x => x.name.toLowerCase() === ns.name.toLowerCase());
+        if (!s) t.subs.push(ns); else mergeWords(s, ns.words);
       });
     });
     conv.forEach(nt => {
