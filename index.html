@@ -91,7 +91,20 @@ label,.label{display:block;margin:10px 0;font-size:14px;color:var(--muted)}
 .bad{border-color:var(--danger)}
 select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);min-width:0}
 [data-say]{cursor:pointer}
-.ex .spk{font-style:normal;font-size:13px;margin-right:4px}
+.ex .spk{font-style:normal;font-size:13px;margin-right:4px;border:0;background:none;padding:0 2px 0 0;cursor:pointer}
+/* Notes: từ / cụm từ được tô đỏ, chạm vào xem nghĩa. Nút "＋ Add to Notes" hiện khi bôi đen chữ */
+/* Loại từ (n., v., adj. …) và dòng V2 / V3 của động từ */
+.pos{display:inline-block;font-size:11px;font-weight:700;color:var(--tc-d);background:var(--tc-bg);border-radius:6px;padding:1px 6px;vertical-align:middle}
+.vf{display:block;font-size:13px;color:var(--tc-d)}
+.back .vf{font-size:15px;margin-top:4px}
+/* Màn hình Irregular verbs */
+.irf{font-size:17px;font-weight:600}
+.irf span{cursor:pointer;color:var(--tc-d)}
+.irf i{font-style:normal;color:var(--muted);margin:0 6px;font-weight:400}
+.nt{color:var(--danger);font-weight:600;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;cursor:pointer}
+#ntAdd{position:fixed;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.card [data-hl]{-webkit-user-select:text;user-select:text}
+.notes .ntc{color:var(--danger)}
 /* Dịch câu ví dụ (Example meaning): ẩn / hiện bằng nút "Example meaning" */
 .exvi{display:block;color:var(--muted);font-size:13px}
 .back .exvi{font-size:14px;margin-top:4px}
@@ -253,12 +266,193 @@ const ICON_PLAY = '<svg viewBox="0 0 24 24" width="28" height="28" fill="current
 const ICON_PAUSE = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>';
 const ICON_PREV = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>';
 const ICON_NEXT = '<svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>';
+// Loại từ: [mã, tên hiển thị trong ô chọn]. Nhãn hiện cạnh từ: TYPE_TAG.
+const TYPES = [['', '—'], ['n', 'noun (n.)'], ['v', 'verb (v.)'], ['adj', 'adjective (adj.)'], ['adv', 'adverb (adv.)'],
+  ['phr.v', 'phrasal verb (phr.v.)'], ['prep', 'preposition (prep.)'], ['phrase', 'phrase'], ['other', 'other']];
+const TYPE_TAG = { n: 'n.', v: 'v.', adj: 'adj.', adv: 'adv.', 'phr.v': 'phr.v.', prep: 'prep.', phrase: 'phrase', other: 'other' };
+function isVerbType(t) { return t === 'v' || t === 'phr.v'; }
+
+// Bảng động từ bất quy tắc (dạng nguyên mẫu | V2 quá khứ đơn | V3 quá khứ phân từ | nghĩa). Có 2 dạng thì ghi "a/b".
+// Nằm sẵn trong app nên tra cứu được khi không có mạng.
+const IRREG = `arise|arose|arisen|phát sinh
+awake|awoke|awoken|thức dậy
+be|was/were|been|thì, là, ở
+bear|bore|borne/born|chịu đựng; sinh ra
+beat|beat|beaten|đánh, thắng
+become|became|become|trở thành
+begin|began|begun|bắt đầu
+bend|bent|bent|uốn cong
+bet|bet|bet|đánh cược
+bid|bid|bid|đấu giá, trả giá
+bind|bound|bound|buộc, trói
+bite|bit|bitten|cắn
+bleed|bled|bled|chảy máu
+blow|blew|blown|thổi
+break|broke|broken|làm vỡ, hỏng
+breed|bred|bred|nuôi, sinh sản
+bring|brought|brought|mang đến
+broadcast|broadcast|broadcast|phát sóng
+build|built|built|xây dựng
+burn|burned/burnt|burned/burnt|đốt, cháy
+burst|burst|burst|nổ tung
+buy|bought|bought|mua
+cast|cast|cast|ném, tung; chiếu (màn hình)
+catch|caught|caught|bắt, bắt kịp
+choose|chose|chosen|chọn
+cling|clung|clung|bám vào
+come|came|come|đến
+cost|cost|cost|có giá, tốn
+creep|crept|crept|bò, rón rén
+cut|cut|cut|cắt
+deal|dealt|dealt|giải quyết, giao dịch
+dig|dug|dug|đào
+dive|dived/dove|dived|lặn
+do|did|done|làm
+draw|drew|drawn|vẽ, kéo
+dream|dreamed/dreamt|dreamed/dreamt|mơ
+drink|drank|drunk|uống
+drive|drove|driven|lái xe
+eat|ate|eaten|ăn
+fall|fell|fallen|ngã, rơi
+feed|fed|fed|cho ăn
+feel|felt|felt|cảm thấy
+fight|fought|fought|chiến đấu
+find|found|found|tìm thấy
+fit|fit/fitted|fit/fitted|vừa vặn
+flee|fled|fled|chạy trốn
+fly|flew|flown|bay
+forbid|forbade|forbidden|cấm
+forecast|forecast|forecast|dự báo
+forget|forgot|forgotten|quên
+forgive|forgave|forgiven|tha thứ
+freeze|froze|frozen|đóng băng, treo máy
+get|got|got/gotten|lấy, có được
+give|gave|given|cho
+go|went|gone|đi
+grind|ground|ground|xay, nghiền
+grow|grew|grown|lớn lên, trồng
+hang|hung|hung|treo
+have|had|had|có
+hear|heard|heard|nghe
+hide|hid|hidden|giấu, ẩn
+hit|hit|hit|đánh, đụng
+hold|held|held|cầm, giữ
+hurt|hurt|hurt|làm đau
+input|input/inputted|input/inputted|nhập (dữ liệu)
+keep|kept|kept|giữ
+kneel|knelt/kneeled|knelt/kneeled|quỳ
+know|knew|known|biết
+lay|laid|laid|đặt, để
+lead|led|led|dẫn dắt
+lean|leaned/leant|leaned/leant|dựa vào
+leap|leaped/leapt|leaped/leapt|nhảy
+learn|learned/learnt|learned/learnt|học
+leave|left|left|rời đi, để lại
+lend|lent|lent|cho mượn
+let|let|let|để cho
+lie|lay|lain|nằm
+light|lit/lighted|lit/lighted|thắp sáng
+lose|lost|lost|mất, thua
+make|made|made|làm, chế tạo
+mean|meant|meant|có nghĩa
+meet|met|met|gặp
+mislead|misled|misled|làm lạc hướng
+mistake|mistook|mistaken|nhầm lẫn
+misunderstand|misunderstood|misunderstood|hiểu lầm
+overcome|overcame|overcome|vượt qua
+overwrite|overwrote|overwritten|ghi đè
+pay|paid|paid|trả tiền
+prove|proved|proved/proven|chứng minh
+put|put|put|đặt, để
+quit|quit|quit|bỏ, thoát
+read|read|read|đọc
+rebuild|rebuilt|rebuilt|xây lại
+reset|reset|reset|đặt lại, khôi phục
+ride|rode|ridden|cưỡi, đi (xe)
+ring|rang|rung|reo, gọi điện
+rise|rose|risen|tăng lên, mọc
+run|ran|run|chạy
+say|said|said|nói
+see|saw|seen|nhìn thấy
+seek|sought|sought|tìm kiếm
+sell|sold|sold|bán
+send|sent|sent|gửi
+set|set|set|đặt, thiết lập
+sew|sewed|sewn/sewed|may, khâu
+shake|shook|shaken|lắc
+shine|shone|shone|chiếu sáng
+shoot|shot|shot|bắn; chụp (ảnh)
+show|showed|shown/showed|cho xem, hiển thị
+shrink|shrank|shrunk|co lại
+shut|shut|shut|đóng
+sing|sang|sung|hát
+sink|sank|sunk|chìm
+sit|sat|sat|ngồi
+sleep|slept|slept|ngủ
+slide|slid|slid|trượt
+smell|smelled/smelt|smelled/smelt|ngửi
+speak|spoke|spoken|nói
+speed|sped|sped|tăng tốc
+spell|spelled/spelt|spelled/spelt|đánh vần
+spend|spent|spent|tiêu, dành (thời gian)
+spill|spilled/spilt|spilled/spilt|làm đổ
+spin|spun|spun|quay
+spit|spat|spat|khạc, nhổ
+split|split|split|chia, tách
+spoil|spoiled/spoilt|spoiled/spoilt|làm hỏng
+spread|spread|spread|lan truyền
+spring|sprang|sprung|nhảy, bật lên
+stand|stood|stood|đứng
+steal|stole|stolen|ăn trộm
+stick|stuck|stuck|dán, dính, mắc kẹt
+sting|stung|stung|châm, chích
+stink|stank|stunk|bốc mùi
+strike|struck|struck|đánh, đình công
+swear|swore|sworn|thề
+sweep|swept|swept|quét
+swim|swam|swum|bơi
+swing|swung|swung|đung đưa
+take|took|taken|lấy, cầm, mất (thời gian)
+teach|taught|taught|dạy
+tear|tore|torn|xé
+tell|told|told|kể, bảo
+think|thought|thought|nghĩ
+throw|threw|thrown|ném
+understand|understood|understood|hiểu
+undo|undid|undone|hoàn tác
+upset|upset|upset|làm buồn, làm rối
+wake|woke|woken|thức dậy
+wear|wore|worn|mặc, đeo
+weep|wept|wept|khóc
+win|won|won|thắng
+wind|wound|wound|cuộn, lên dây
+withdraw|withdrew|withdrawn|rút (tiền), rút lại
+write|wrote|written|viết`.split('\n').map(l => { const [b, v2, v3, vi] = l.split('|'); return { b, v2, v3, vi }; });
+const IRREG_MAP = new Map(IRREG.map(v => [v.b, v]));
+
+// Tra V2 / V3 của động từ bất quy tắc. Cụm động từ (take off) tra theo động từ đầu, giữ phần sau (took off).
+// Động từ có tiền tố (rewrite, undertake, outrun) tra theo phần sau tiền tố. Không có trong bảng (động từ có quy tắc) → null.
+function irregularOf(word) {
+  const [first, ...rest] = normText(word).toLowerCase().split(' ');
+  if (!first) return null;
+  let v = IRREG_MAP.get(first), pre = '';
+  if (!v && first !== 'relay') {
+    for (const p of ['under', 'over', 'with', 'fore', 'mis', 'out', 're', 'un', 'up']) {
+      if (first.startsWith(p) && IRREG_MAP.has(first.slice(p.length))) { pre = p; v = IRREG_MAP.get(first.slice(p.length)); break; }
+    }
+  }
+  if (!v) return null;
+  const tail = rest.length ? ' ' + rest.join(' ') : '';
+  const f = s => s.split('/').map(x => pre + x + tail).join(' / ');
+  return { v2: f(v.v2), v3: f(v.v3) };
+}
+
 const $ = s => document.querySelector(s);
 const app = $('#app');
 
 // ===== Dữ liệu =====
 let db = load();
-let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, lsRate: 0.9, cpRate: 0.9, cpMode: 'cont', cpShowVi: true, exvi: true,
+let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, stEx: true, lsRate: 0.9, cpRate: 0.9, cpMode: 'cont', cpShowVi: true, exvi: true,
   theme: 'ocean', voiceV: '', voiceT: '', voiceR: '', nameT: 'TH', nameR: 'TR' }, readJSON(OPT_KEY));
 if (opt.nameT === 'THAI') opt.nameT = 'TH';   // tên mặc định cũ → tên mặc định mới
 if (opt.nameR === 'TRANG') opt.nameR = 'TR';
@@ -280,10 +474,11 @@ function load() {
     if (!Array.isArray(d.banners)) d.banners = isImg(d.banner) ? [d.banner] : []; // dữ liệu cũ: 1 ảnh → danh sách ảnh
     delete d.banner;
     if (!d.avatars) d.avatars = { T: '', R: '' };                      // ảnh đại diện THAI / TRANG
+    if (!Array.isArray(d.notes)) d.notes = [];                         // Notes: từ / cụm từ được tô đỏ trong câu
     return d;
   }
   // Lần đầu mở: tạo chủ đề ví dụ (có thể xóa)
-  return { banners: [], avatars: { T: '', R: '' }, conv: [sampleConv()], topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
+  return { banners: [], avatars: { T: '', R: '' }, notes: [], conv: [sampleConv()], topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
     { id: uid(), en: 'father', ipa: '/ˈfɑː.ðər/', vi: 'bố, cha', ex: 'My father is a teacher.', learned: false },
     { id: uid(), en: 'mother', ipa: '/ˈmʌð.ər/', vi: 'mẹ', ex: 'My mother cooks very well.', learned: false },
     { id: uid(), en: 'brother', ipa: '/ˈbrʌð.ər/', vi: 'anh trai, em trai', ex: 'I have one brother.', learned: false }
@@ -428,6 +623,237 @@ function resizeImage(file, size, square, quality) {
   });
 }
 
+// ===== Notes: từ / cụm từ được tô đỏ trong câu ví dụ và câu thoại =====
+// db.notes = [{id, text, ipa, vi, note}]. Mỗi lần hiện 1 câu, app dò câu đó xem có chứa từ nào trong Notes
+// (không phân biệt hoa thường, theo nguyên từ) rồi tô đỏ. Thêm / xóa Notes thì mọi câu tự cập nhật.
+function normText(s) { return String(s || '').trim().replace(/\s+/g, ' '); }
+function noteByText(s) { const k = normText(s).toLowerCase(); return db.notes.find(n => n.text.toLowerCase() === k); }
+
+// Mẫu tìm kiếm (regex) của tất cả từ trong Notes: chuẩn bị 1 lần, dùng lại cho mọi câu.
+// Notes thay đổi (thêm / sửa / xóa / Import) thì gọi notesChanged() để lần sau chuẩn bị lại.
+let hlCache = null;
+function notesChanged() { hlCache = null; }
+// Các dạng thêm đuôi thông dụng của 1 từ (chữ thường): -s / -es / -ed / -ing,
+// có xử lý nhân đôi phụ âm (set → setting), bỏ e (make → making), y → ies / ied (try → tries, tried).
+// Từ dưới 3 chữ cái thì không đoán (tránh tô nhầm như us → uses). Động từ bất quy tắc ghi ở ô "Also match".
+function wordForms(w) {
+  const lw = w.toLowerCase(), out = new Set();
+  if (lw.length < 3 || !/^[a-z]+$/.test(lw)) return out;
+  if (/[^aeiou]y$/.test(lw)) {                       // try → tries, tried, trying
+    const st = lw.slice(0, -1);
+    out.add(st + 'ies'); out.add(st + 'ied'); out.add(lw + 'ing');
+  } else if (/e$/.test(lw)) {                         // make → makes, maked(*), making ; free → freeing
+    out.add(lw + 's'); out.add(lw + 'd');
+    out.add(/(ee|ye|oe)$/.test(lw) ? lw + 'ing' : lw.slice(0, -1) + 'ing');
+  } else {
+    out.add(/(s|x|z|ch|sh|o)$/.test(lw) ? lw + 'es' : lw + 's'); // watch → watches, check → checks
+    out.add(lw + 'ed'); out.add(lw + 'ing');
+    if (/[^aeiou][aeiou][b-df-hj-np-tvz]$/.test(lw)) { // set → setting, stop → stopped
+      const d = lw + lw.slice(-1);
+      out.add(d + 'ed'); out.add(d + 'ing');
+    }
+  }
+  return out;
+}
+
+// Tất cả chữ app sẽ tô đỏ cho 1 mục Notes: chữ gốc + V2 / V3 (động từ) + ô "Also match"
+// + (nếu bật) dạng thêm đuôi của từ đầu tiên
+function noteVariants(n) {
+  const v = new Set([normText(n.text).toLowerCase()]);
+  [n.v2, n.v3].forEach(x => String(x || '').split('/').map(s => normText(s).toLowerCase()).filter(Boolean).forEach(s => v.add(s)));
+  String(n.also || '').split(',').map(s => normText(s).toLowerCase()).filter(Boolean).forEach(s => v.add(s));
+  if (n.forms !== false) {
+    const [first, ...rest] = normText(n.text).split(' ');
+    wordForms(first).forEach(f => v.add([f, ...rest].join(' ').toLowerCase()));
+  }
+  return v;
+}
+
+function hlPattern() {
+  if (hlCache) return hlCache;
+  const ids = new Map(); // chữ cần tô (chữ thường) → id của mục Notes
+  db.notes.filter(n => n.text).forEach(n => noteVariants(n).forEach(s => { if (!ids.has(s)) ids.set(s, n.id); }));
+  if (!ids.size) return (hlCache = { re: null, ids });
+  const pat = [...ids.keys()].sort((a, b) => b.length - a.length) // cụm dài ưu tiên trước
+    .map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+')).join('|');
+  return (hlCache = { ids, re: new RegExp('(^|[^A-Za-z0-9])(' + pat + ')(?![A-Za-z0-9])', 'gi') });
+}
+// Mục Notes ứng với 1 chữ (chữ gốc, chữ trong Also match hoặc dạng thêm đuôi)
+function noteForText(s) {
+  const id = hlPattern().ids.get(normText(s).toLowerCase());
+  return id ? db.notes.find(n => n.id === id) : null;
+}
+
+// Trả về HTML của câu, các từ trong Notes được bọc <span class="nt"> (chữ đỏ, chạm vào xem nghĩa)
+function hlHtml(text) {
+  text = String(text || '');
+  const { re, ids } = hlPattern();
+  if (!re) return esc(text);
+  re.lastIndex = 0;
+  let out = '', last = 0, m;
+  while ((m = re.exec(text))) {
+    const start = m.index + m[1].length, end = start + m[2].length;
+    const id = ids.get(normText(m[2]).toLowerCase()) || '';
+    out += esc(text.slice(last, start)) + `<span class="nt" data-nt="${id}">${esc(m[2])}</span>`;
+    last = end;
+    re.lastIndex = end;
+  }
+  return out + esc(text.slice(last));
+}
+// Vẽ lại phần tô đỏ của các câu đang hiện trên màn hình (sau khi thêm / sửa / xóa Notes)
+function refreshHl() {
+  document.querySelectorAll('[data-hl]').forEach(el => { if (!el.classList.contains('reading')) el.innerHTML = hlHtml(el.dataset.hl); });
+}
+
+// Thêm (n = null, text = từ đã bôi đen) hoặc sửa 1 mục Notes
+async function editNote(n, text) {
+  const r = await ask({
+    title: n ? 'Edit note' : 'Add to Notes',
+    fields: [
+      { name: 'text', label: 'Word / phrase', required: 1, en: 1, value: n ? n.text : text },
+      { name: 'type', label: 'Type', select: TYPES, value: n && n.type },
+      { name: 'v2', label: 'V2 (past simple)', en: 1, value: n && n.v2 },
+      { name: 'v3', label: 'V3 (past participle)', en: 1, value: n && n.v3 },
+      { name: 'also', label: 'Also match (other forms, comma separated)', en: 1, ph: 'setup, set-up', value: n && n.also },
+      { name: 'forms', label: 'Match word forms', value: n && n.forms === false ? '0' : '1',
+        select: [['1', 'On – also -s / -es / -ed / -ing'], ['0', 'Off – exact words only']] },
+      { name: 'ipa', label: 'Pronunciation', en: 1, ph: '/set ʌp/', value: n && n.ipa },
+      { name: 'vi', label: 'Meaning', required: 1, value: n && n.vi },
+      { name: 'note', label: 'Note', multi: 1, value: n && n.note }
+    ],
+    onChange: verbFormsHelper,
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Save', value: 'ok', check: 1, cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  r.v.text = normText(r.v.text);
+  r.v.also = r.v.also.split(',').map(normText).filter(Boolean).join(', ');
+  r.v.forms = r.v.forms !== '0';
+  if (!isVerbType(r.v.type)) { r.v.v2 = ''; r.v.v3 = ''; }
+  const dup = noteByText(r.v.text);
+  if (dup && dup !== n) { toast(`"${r.v.text}" is already in Notes`); return; }
+  if (n) Object.assign(n, r.v);
+  else db.notes.push(Object.assign({ id: uid() }, r.v));
+  save();
+  notesChanged();
+  refreshHl();
+  if (location.hash === '#n') renderNotes();
+  toast(n ? 'Note saved' : 'Added to Notes');
+}
+
+// Chạm vào chữ đỏ: xem nghĩa, nghe, sửa, xóa
+async function showNote(id) {
+  const n = db.notes.find(x => x.id === id);
+  if (!n) return;
+  const r = await ask({
+    title: n.text,
+    msg: [n.type ? TYPE_TAG[n.type] : '', n.ipa, n.vi, n.v2 || n.v3 ? `V2: ${n.v2 || '–'} · V3: ${n.v3 || '–'}` : '',
+      n.note ? 'Note: ' + n.note : ''].filter(Boolean).join('\n'),
+    buttons: [{ label: '🔊 Listen', value: null, keep: 1, run: () => speak(n.text) },
+      { label: 'Remove', value: 'rm', cls: 'danger' }, { label: 'Edit', value: 'edit' }, { label: 'Close', value: null, cls: 'primary' }]
+  });
+  if (r.btn === 'edit') editNote(n);
+  else if (r.btn === 'rm') removeNote(n);
+}
+
+function removeNote(n) {
+  if (!confirm(`Remove "${n.text}" from Notes?`)) return;
+  db.notes = db.notes.filter(x => x !== n);
+  save();
+  notesChanged();
+  refreshHl();
+  if (location.hash === '#n') renderNotes();
+  toast('Removed from Notes');
+}
+
+// Bôi đen chữ trong câu ví dụ / câu thoại → hiện nút "＋ Add to Notes" ngay dưới chữ đã chọn
+// (iPhone không cho thêm nút vào menu Copy / Look Up của iOS, nên app hiện nút riêng)
+const ntAdd = document.createElement('button');
+ntAdd.id = 'ntAdd';
+ntAdd.className = 'btn small primary';
+ntAdd.textContent = '＋ Add to Notes';
+ntAdd.hidden = true;
+document.body.appendChild(ntAdd);
+ntAdd.onclick = () => {
+  const text = ntAdd.dataset.text;
+  ntAdd.hidden = true;
+  const sel = window.getSelection();
+  if (sel) sel.removeAllRanges();
+  const n = noteForText(text); // chữ đã có trong Notes (kể cả dạng khác): mở hộp nghĩa thay vì thêm mới
+  if (n) showNote(n.id); else editNote(null, text);
+};
+let selTimer = null;
+document.addEventListener('selectionchange', () => { clearTimeout(selTimer); selTimer = setTimeout(checkSelection, 250); });
+function checkSelection() {
+  const sel = window.getSelection();
+  const text = sel && sel.rangeCount ? normText(sel.toString()).replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g, '') : '';
+  const node = sel && sel.anchorNode ? (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement) : null;
+  if (!text || text.length > 60 || !node || !node.closest('[data-hl]') || $('#dlg').open) { ntAdd.hidden = true; return; }
+  const rc = sel.getRangeAt(0).getBoundingClientRect();
+  ntAdd.dataset.text = text;
+  ntAdd.hidden = false;
+  const top = rc.bottom + 10 + ntAdd.offsetHeight > innerHeight ? rc.top - ntAdd.offsetHeight - 10 : rc.bottom + 10;
+  ntAdd.style.top = Math.max(8, top) + 'px';
+  ntAdd.style.left = Math.min(Math.max(8, rc.left + rc.width / 2 - ntAdd.offsetWidth / 2), innerWidth - ntAdd.offsetWidth - 8) + 'px';
+}
+
+// Màn hình danh sách động từ bất quy tắc (mở từ màn hình tổng): tìm kiếm, chạm vào từng dạng để nghe
+function renderIrregular() {
+  setBar('Irregular verbs', '', []);
+  app.className = 'fill tc1';
+  app.innerHTML = `
+    <input type="search" id="irq" placeholder="Search: take, took, lấy…" autocomplete="off" autocapitalize="none" spellcheck="false" lang="en">
+    <p class="muted" id="irn"></p>
+    <ul class="list tlist" id="irl"></ul>`;
+  const say = s => s.replace(/\//g, ' or ');
+  const draw = q => {
+    q = q.trim().toLowerCase();
+    const list = IRREG.filter(v => !q || [v.b, v.v2, v.v3, v.vi].some(s => s.toLowerCase().includes(q)));
+    $('#irn').textContent = `${list.length} / ${IRREG.length} verbs · V1 · V2 (past) · V3 (past participle) · tap a word to hear it`;
+    $('#irl').innerHTML = list.length ? list.map(v => `
+      <li class="item">
+        <button class="icon" data-say="${esc(say(v.b + ', ' + v.v2 + ', ' + v.v3))}" aria-label="Listen to all forms">🔊</button>
+        <div class="grow">
+          <div class="irf">${[v.b, v.v2, v.v3].map(f => `<span data-say="${esc(say(f))}">${esc(f)}</span>`).join('<i>·</i>')}</div>
+          <small>${esc(v.vi)}</small>
+        </div>
+      </li>`).join('') : '<li class="empty">Not found. Regular verbs (play → played) are not in this list.</li>';
+  };
+  $('#irq').oninput = e => draw(e.target.value);
+  $('#irl').onclick = e => { const s = e.target.closest('[data-say]'); if (s) speak(s.dataset.say); };
+  draw('');
+}
+
+// Màn hình danh sách Notes (mở từ nút 📝 ở màn hình Vocabulary)
+function renderNotes() {
+  setBar('Notes', 'v', [['＋', 'Add note', () => editNote(null, '')]]);
+  const ns = db.notes.slice().sort((a, b) => a.text.localeCompare(b.text));
+  app.className = 'notes';
+  app.innerHTML = `
+    <p class="muted">Words and phrases shown in red in example sentences and conversations. Tap one to edit.</p>
+    <ul class="list" id="notes">${ns.length ? ns.map(n => `
+      <li class="item">
+        <button class="icon" data-say="${esc(n.text)}" aria-label="Pronounce">🔊</button>
+        <div class="grow" data-n="${n.id}" style="cursor:pointer">
+          <b class="ntc">${esc(n.text)}</b> ${typeTagHtml(n)} ${n.ipa ? `<span class="ipa">${esc(n.ipa)}</span>` : ''}
+          <div>${esc(n.vi)}</div>
+          ${verbFormsHtml(n)}
+          ${n.also ? `<small>Also: ${esc(n.also)}</small>` : ''}
+          ${n.forms === false ? '<small>Word forms: off</small>' : ''}
+          ${n.note ? `<small>${esc(n.note)}</small>` : ''}
+        </div>
+        <button class="icon sm" data-rm="${n.id}" aria-label="Remove">✕</button>
+      </li>`).join('')
+      : '<li class="empty">No notes yet.<br>Select a word or phrase in an example sentence, then tap “＋ Add to Notes”.</li>'}</ul>`;
+  $('#notes').onclick = e => {
+    const say = e.target.closest('[data-say]');
+    const rm = e.target.closest('[data-rm]');
+    const it = e.target.closest('[data-n]');
+    if (say) speak(say.dataset.say);
+    else if (rm) removeNote(db.notes.find(x => x.id === rm.dataset.rm));
+    else if (it) editNote(db.notes.find(x => x.id === it.dataset.n));
+  };
+}
+
 // ===== Đổi vị trí trong danh sách (nút ↑ / ↓) =====
 function mvBtns(i, n) {
   return `<button class="icon sm" data-mv="-1" data-i="${i}" aria-label="Move up" ${i ? '' : 'disabled'}>↑</button>` +
@@ -481,9 +907,11 @@ function setBar(title, backHash, actions) {
 
 // Hộp thoại chung: trả về Promise {btn, v}
 // fields: {name, label, required, en, multi, rows, ph, value, image}  (image: ô chọn ảnh chủ đề)
-// buttons: {label, value, cls, check, run}  (run: chạy ngay khi bấm, ví dụ mở hộp chọn ảnh)
+// buttons: {label, value, cls, check, run, keep}  (run: chạy ngay khi bấm, ví dụ mở hộp chọn ảnh; keep: không đóng hộp thoại)
 // field có select: [[giá trị, nhãn], ...] thì hiện ô chọn
-function ask({ title, msg, fields = [], buttons }) {
+// onChange(f, tên ô vừa đổi): gọi khi giá trị 1 ô thay đổi (và 1 lần lúc mở, tên = null).
+//   f.get(tên), f.set(tên, giá trị), f.show(tên, true/false) để đọc / ghi / ẩn hiện ô.
+function ask({ title, msg, fields = [], buttons, onChange }) {
   return new Promise(resolve => {
     const d = $('#dlg');
     const imgs = {}; // giá trị ảnh hiện tại của các ô chọn ảnh
@@ -550,10 +978,19 @@ function ask({ title, msg, fields = [], buttons }) {
         });
         if (bad) { bad.focus(); toast('Please fill in the fields marked *'); return; }
         if (b.run) b.run();
+        if (b.keep) return; // nút không đóng hộp thoại (ví dụ nghe phát âm)
         finish({ btn: b.value, v });
       };
       box.appendChild(btn);
     });
+    const fld = n => d.querySelector(`[name="${n}"]`);
+    const api = {
+      get: n => (fld(n) ? fld(n).value : ''),
+      set: (n, v) => { if (fld(n)) fld(n).value = v; },
+      show: (n, on) => { if (fld(n)) fld(n).closest('label').hidden = !on; }
+    };
+    $('#dlgBody').onchange = onChange ? e => onChange(api, e.target.name) : null;
+    if (onChange) onChange(api, null);
     d.showModal();
     const first = d.querySelector('input:not([type=file]),textarea');
     if (first) first.focus();
@@ -678,6 +1115,8 @@ function render() {
   else if (page === 'ce' && ct && (id2 === 'new' || ct.items.some(c => c.id === id2))) renderConvEdit(ct, id2);
   else if (page === 'cp') renderConvPlay(ct ? (id2 && ct.items.some(c => c.id === id2) ? id + '/' + id2 : id) : '');
   else if (page === 'set') renderSettings();
+  else if (page === 'n') renderNotes();
+  else if (page === 'irr') renderIrregular();
   else renderHub();
   window.scrollTo(0, 0);
 }
@@ -695,6 +1134,8 @@ function renderHub() {
         <div class="grow"><b>Vocabulary</b><small>${db.topics.length} topics · ${words} words</small></div><span class="chev">›</span></a>
       <a class="tile tc2" href="#c"><span class="ic">💬</span>
         <div class="grow"><b>Conversation</b><small>${db.conv.length} topics · ${convs} conversations</small></div><span class="chev">›</span></a>
+      <a class="tile tc1" href="#irr"><span class="ic">🔤</span>
+        <div class="grow"><b>Irregular verbs</b><small>${IRREG.length} verbs · V1 · V2 · V3</small></div><span class="chev">›</span></a>
     </div>
     ${db.banners.length ? slidesHtml(db.banners) : '<div class="banner"><button class="ph" id="bPick">＋ Add image</button></div>'}`;
   const pick = $('#bPick');
@@ -839,7 +1280,7 @@ function renderSettings() {
     </section>
     <section class="sect"><h3>Import Excel</h3>
       <p class="muted">Add vocabulary from an .xlsx file. Each sheet becomes a topic (sheet name = topic name).
-        Row 1 must be the header: Subtopic | Word | IPA | Meaning | Example | Example meaning.
+        Row 1 must be the header: Subtopic | Word | Type | V2 | V3 | IPA | Meaning | Example | Example meaning.
         Word and Meaning are required. Each import creates new topics (existing topics are not changed).</p>
       <div class="row"><button class="btn grow" id="xls">Import Excel (.xlsx)</button></div>
     </section>`;
@@ -911,7 +1352,7 @@ function renderVocab() {
   const so = sorting === 'v';
   setBar('Vocabulary', '', so
     ? [['Done', 'Finish reordering', () => { sorting = null; renderVocab(); }, 'text']]
-    : [['↕', 'Reorder topics', () => { sorting = 'v'; renderVocab(); }],
+    : [['📝', 'Notes', () => { location.hash = 'n'; }], ['↕', 'Reorder topics', () => { sorting = 'v'; renderVocab(); }],
        ['🎧', 'Listen', () => { location.hash = 'l'; }], ['＋', 'Add topic', addTopic]]);
   app.className = 'fill';
   app.innerHTML = `
@@ -1022,6 +1463,8 @@ function renderTopic(t, sub) {
   const q = $('#q');
   if (q) q.oninput = () => drawWords(box, q.value);
   words.onclick = e => {
+    const nt = editing === box.id ? null : e.target.closest('.nt'); // chạm chữ đỏ: xem nghĩa trong Notes
+    if (nt) { showNote(nt.dataset.nt); return; }
     const say = e.target.closest('[data-say]');
     const learn = e.target.closest('[data-learn]');
     const edit = e.target.closest('[data-edit]');
@@ -1115,9 +1558,10 @@ function drawWords(t, q) {
     <li class="item">
       <button class="icon" data-say="${esc(w.en)}" aria-label="Pronounce">🔊</button>
       <div class="grow" ${ed ? `data-edit="${w.id}" style="cursor:pointer"` : ''}>
-        <b ${ed ? '' : `data-say="${esc(w.en)}"`}>${esc(w.en)}</b> ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
+        <b ${ed ? '' : `data-say="${esc(w.en)}"`}>${esc(w.en)}</b> ${typeTagHtml(w)} ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
         <div>${esc(w.vi)}</div>
-        ${w.ex ? `<small class="ex" ${ed ? '' : `data-say="${esc(w.ex)}"`}>${ed ? '' : '<span class="spk">🔈</span>'}${esc(w.ex)}</small>` : ''}
+        ${verbFormsHtml(w)}
+        ${w.ex ? `<small class="ex">${ed ? '' : `<button class="spk" data-say="${esc(w.ex)}" aria-label="Listen to the example">🔈</button>`}<span data-hl="${esc(w.ex)}">${hlHtml(w.ex)}</span></small>` : ''}
         ${w.exvi ? `<small class="exvi">${esc(w.exvi)}</small>` : ''}
       </div>
       ${ed ? `<span class="pen" data-edit="${w.id}">✎</span>` : ''}
@@ -1151,6 +1595,27 @@ function deleteTopic(t, list, child, backHash) {
   location.hash = backHash;
 }
 
+// Hộp thêm / sửa từ và Notes: chỉ hiện ô V2 / V3 khi Type là động từ.
+// Chọn động từ (hoặc sửa từ) mà V2, V3 đang trống → tự điền nếu là động từ bất quy tắc (động từ có quy tắc thì để trống).
+// Ô chứa từ: 'en' (từ vựng) hoặc 'text' (Notes).
+function verbFormsHelper(f, changed) {
+  const verb = isVerbType(f.get('type'));
+  f.show('v2', verb);
+  f.show('v3', verb);
+  const word = f.get('en') || f.get('text');
+  if (verb && (changed === 'type' || changed === 'en' || changed === 'text') && !f.get('v2') && !f.get('v3')) {
+    const ir = irregularOf(word);
+    if (ir) { f.set('v2', ir.v2); f.set('v3', ir.v3); }
+  }
+}
+
+// Nhãn loại từ và dòng V2 / V3 (dùng ở danh sách từ, Study, Notes)
+function typeTagHtml(x) { return x.type && TYPE_TAG[x.type] ? `<span class="pos">${TYPE_TAG[x.type]}</span>` : ''; }
+function verbFormsHtml(x, tag) {
+  if (!x.v2 && !x.v3) return '';
+  return `<${tag || 'small'} class="vf">V2: ${esc(x.v2 || '–')} · V3: ${esc(x.v3 || '–')}</${tag || 'small'}>`;
+}
+
 // t: chủ đề, box: nơi đang chứa từ (chủ đề hoặc chủ đề con), w: từ cần sửa (null = thêm mới)
 // Chủ đề có chủ đề con thì có ô "Subtopic" để chọn nơi chứa từ; chọn nơi khác thì từ được chuyển sang đó.
 async function editWord(t, box, w) {
@@ -1158,6 +1623,9 @@ async function editWord(t, box, w) {
   const subs = t.subs || [];
   const fields = [
     { name: 'en', label: 'English word', required: 1, en: 1, value: w && w.en },
+    { name: 'type', label: 'Type', select: TYPES, value: w && w.type },
+    { name: 'v2', label: 'V2 (past simple)', en: 1, value: w && w.v2 },
+    { name: 'v3', label: 'V3 (past participle)', en: 1, value: w && w.v3 },
     { name: 'ipa', label: 'Pronunciation', en: 1, ph: '/ˈæp.əl/', value: w && w.ipa },
     { name: 'vi', label: 'Meaning', required: 1, value: w && w.vi },
     { name: 'ex', label: 'Example', multi: 1, en: 1, value: w && w.ex },
@@ -1168,6 +1636,7 @@ async function editWord(t, box, w) {
   const r = await ask({
     title: isNew ? 'Add word' : 'Edit word',
     fields,
+    onChange: verbFormsHelper,
     buttons: isNew
       ? [{ label: 'Cancel', value: null }, { label: 'Save & add next', value: 'next', check: 1 }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
       : [{ label: 'Delete', value: 'del', cls: 'danger' }, { label: 'Cancel', value: null }, { label: 'Save', value: 'save', check: 1, cls: 'primary' }]
@@ -1183,6 +1652,7 @@ async function editWord(t, box, w) {
   if (!r.btn) return;
   const target = (r.v.sub && subById(t, r.v.sub)) || t; // nơi chứa từ sau khi lưu
   delete r.v.sub;
+  if (!isVerbType(r.v.type)) { r.v.v2 = ''; r.v.v3 = ''; } // V2 / V3 chỉ dùng cho động từ
   if (isNew) {
     const dup = target.words.some(x => x.en.toLowerCase() === r.v.en.toLowerCase());
     if (dup && !confirm(`"${r.v.en}" already exists in "${target.name}". Add anyway?`)) return;
@@ -1226,7 +1696,8 @@ function renderStudy(t, sub) {
       <button class="chip" data-o="dir">${opt.dir === 'en' ? 'EN → Meaning' : 'Meaning → EN'}</button>
       <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Shuffle</button>
       <button class="chip ${opt.onlyNew ? 'on' : ''}" data-o="onlyNew">Not learned only</button>
-      ${words.some(w => w.exvi) ? exviChipHtml() : ''}
+      ${words.some(w => w.ex) ? `<button class="chip ${opt.stEx ? 'on' : ''}" data-o="stEx">Example</button>` : ''}
+      ${opt.stEx && words.some(w => w.exvi) ? exviChipHtml() : ''}
     </div>`;
   const n = st.ids.length;
   let body;
@@ -1240,8 +1711,10 @@ function renderStudy(t, sub) {
     const enHtml = `<div class="big">${esc(w.en)}</div>${w.ipa ? `<div class="ipa">${esc(w.ipa)}</div>` : ''}`;
     const viHtml = `<div class="${opt.dir === 'vi' ? 'big' : ''}">${esc(w.vi)}</div>`;
     const front = opt.dir === 'en' ? enHtml : viHtml;
-    const back = (opt.dir === 'en' ? viHtml : enHtml) + (w.ex ? `<div class="ex">${esc(w.ex)}</div>` : '') +
-      (w.exvi ? `<div class="exvi">${esc(w.exvi)}</div>` : '');
+    // Mặt sau thẻ: nghĩa (hoặc từ tiếng Anh) + câu ví dụ, dịch câu ví dụ (nút "Example" tắt thì không hiện câu ví dụ)
+    const back = (opt.dir === 'en' ? viHtml : enHtml) + (w.type ? `<div>${typeTagHtml(w)}</div>` : '') + verbFormsHtml(w, 'div') +
+      (opt.stEx && w.ex ? `<div class="ex" data-hl="${esc(w.ex)}">${hlHtml(w.ex)}</div>` : '') +
+      (opt.stEx && w.exvi ? `<div class="exvi">${esc(w.exvi)}</div>` : '');
     body = `
       <p class="prog">${st.i + 1} / ${n}</p>
       <div class="card" id="card">
@@ -1260,7 +1733,13 @@ function renderStudy(t, sub) {
       <p class="muted" style="text-align:center">Swipe left / right on the card to change words</p>`;
     setTimeout(() => {
       const card = $('#card');
-      card.onclick = () => { st.flip = !st.flip; renderStudy(t, sub); };
+      card.onclick = e => {
+        const nt = e.target.closest('.nt'); // chạm chữ đỏ: xem nghĩa, không lật thẻ
+        if (nt) { showNote(nt.dataset.nt); return; }
+        if (String(window.getSelection() || '').trim()) return; // đang bôi đen chữ: không lật thẻ
+        st.flip = !st.flip;
+        renderStudy(t, sub);
+      };
       let x0 = null;
       card.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
       card.addEventListener('touchend', e => {
@@ -1284,7 +1763,8 @@ function renderStudy(t, sub) {
     const k = b.dataset.o;
     opt[k] = k === 'dir' ? (opt.dir === 'en' ? 'vi' : 'en') : !opt[k];
     saveOpt();
-    if (k === 'dir') st.flip = false; else buildDeck(words, box.id);
+    if (k === 'dir') st.flip = false;
+    else if (k !== 'stEx') buildDeck(words, box.id); // ẩn / hiện câu ví dụ thì giữ nguyên thẻ đang học
     renderStudy(t, sub);
   });
   const again = $('#again');
@@ -1543,7 +2023,7 @@ function plSetCur(k, scroll) {
   const prev = document.querySelector('#plist .cur');
   if (prev) {
     prev.classList.remove('cur');
-    prev.querySelectorAll('[data-part]').forEach(p => { p.className = p.dataset.c; p.textContent = p.dataset.t; });
+    prev.querySelectorAll('[data-part]').forEach(p => { p.className = p.dataset.c; p.innerHTML = hlHtml(p.dataset.t); });
   }
   pl.i = k;
   pl.done = false;
@@ -1568,9 +2048,9 @@ function plMove(d) {
   else { plSetCur(k, true); plUpdate(); }
 }
 
-// Phần chữ được tô màu khi đọc (data-c: class gốc, data-t: chữ gốc để trả về như cũ)
+// Phần chữ được tô màu khi đọc (data-c: class gốc, data-t: chữ gốc để trả về như cũ; data-hl: tô đỏ từ trong Notes)
 function partHtml(cls, text) {
-  return `<div class="${cls}" data-part data-c="${cls}" data-t="${esc(text)}">${esc(text)}</div>`;
+  return `<div class="${cls}" data-part data-c="${cls}" data-t="${esc(text)}" data-hl="${esc(text)}">${hlHtml(text)}</div>`;
 }
 
 function plBarHtml(n) {
@@ -1589,6 +2069,9 @@ function plBarHtml(n) {
 
 function plBind() {
   $('#plist').onclick = e => {
+    const nt = e.target.closest('.nt'); // chạm chữ đỏ: xem nghĩa trong Notes (không đổi vị trí đọc)
+    if (nt) { showNote(nt.dataset.nt); return; }
+    if (String(window.getSelection() || '').trim()) return; // đang bôi đen chữ
     const r = e.target.closest('[data-k]');
     if (r) plStart(+r.dataset.k);
   };
@@ -2011,6 +2494,9 @@ function colIndex(ref) { // "C12" → 2
 
 // Nhận cột theo chữ trong tiêu đề (tiếng Anh hoặc tiếng Việt). Thứ tự kiểm tra quan trọng: "Example meaning" trước "Example".
 const XL_HEAD = [
+  ['v3', /^(v3|past participle|pp\b|phân từ)/i],
+  ['v2', /^(v2|past|quá khứ)/i],
+  ['type', /^(type|part of speech|pos\b|loại|từ loại)/i],
   ['exvi', /(example meaning|translation|dịch)/i],
   ['sub', /^(sub ?topic|topic|chủ đề)/i],
   ['ipa', /(ipa|pronunciation|phiên âm)/i],
@@ -2018,6 +2504,16 @@ const XL_HEAD = [
   ['vi', /^(meaning|nghĩa)/i],
   ['ex', /^(example|ví dụ)/i]
 ];
+// Chữ trong cột Type của Excel → mã loại từ (v, n, adj …). Nhận cả tiếng Anh và tiếng Việt; không nhận ra → 'other'.
+function parseType(s) {
+  s = normText(s).toLowerCase().replace(/\.$/, '');
+  if (!s) return '';
+  const hit = [['phr.v', /^(phr\.?\s?v|phrasal|cụm động)/], ['adj', /^(adj|adjective|tính)/], ['adv', /^(adv|adverb|trạng)/],
+    ['prep', /^(prep|preposition|giới)/], ['phrase', /^(phrase|cụm)/], ['n', /^(n|noun|danh)$|^(noun|danh)/],
+    ['v', /^(v|verb|động)$|^(verb|động)/]].find(([, re]) => re.test(s));
+  return hit ? hit[0] : 'other';
+}
+
 function planXlsx(sheets) {
   const plan = [], skipped = [];
   sheets.forEach(sh => {
@@ -2030,7 +2526,8 @@ function planXlsx(sheets) {
     if (map.en == null || map.vi == null) { skipped.push(sh.name); return; }
     const words = sh.rows.slice(1).map(r => {
       const g = k => map[k] == null ? '' : (r[map[k]] || '');
-      return { sub: g('sub'), en: g('en'), ipa: g('ipa'), vi: g('vi'), ex: g('ex'), exvi: g('exvi') };
+      return { sub: g('sub'), en: g('en'), ipa: g('ipa'), vi: g('vi'), ex: g('ex'), exvi: g('exvi'),
+        type: g('type'), v2: g('v2'), v3: g('v3') };
     }).filter(w => w.en);
     plan.push({ topic: sh.name || 'Imported', words });
   });
@@ -2054,7 +2551,11 @@ function applyXlsx(topics, plan) {
         if (!box) { box = { id: uid(), name: w.sub, words: [] }; t.subs.push(box); res.subsNew++; }
       }
       if (box.words.some(x => same(x.en, w.en))) { res.dup++; return; }
-      box.words.push({ id: uid(), en: w.en, ipa: w.ipa, vi: w.vi, ex: w.ex, exvi: w.exvi, learned: false });
+      const type = parseType(w.type);
+      let { v2, v3 } = w;
+      if (!isVerbType(type)) { v2 = ''; v3 = ''; }
+      else if (!v2 && !v3) { const ir = irregularOf(w.en); if (ir) ({ v2, v3 } = ir); } // động từ bất quy tắc: tự điền
+      box.words.push({ id: uid(), en: w.en, type, v2, v3, ipa: w.ipa, vi: w.vi, ex: w.ex, exvi: w.exvi, learned: false });
       res.added++;
     });
   });
@@ -2118,7 +2619,7 @@ async function exportData() {
 function normalize(d) {
   const words = list => (Array.isArray(list) ? list : []).filter(w => w && w.en).map(w => ({
     id: uid(), en: String(w.en), ipa: String(w.ipa || ''), vi: String(w.vi || ''), ex: String(w.ex || ''),
-    exvi: String(w.exvi || ''), learned: !!w.learned
+    exvi: String(w.exvi || ''), type: String(w.type || ''), v2: String(w.v2 || ''), v3: String(w.v3 || ''), learned: !!w.learned
   }));
   return (d.topics || []).filter(t => t && t.name).map(t => ({
     id: uid(),
@@ -2146,7 +2647,7 @@ $('#fileIn').onchange = async e => {
   const f = e.target.files[0];
   e.target.value = '';
   if (!f) return;
-  let topics, conv, banners, avatars;
+  let topics, conv, banners, avatars, notes;
   try {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.topics)) throw new Error();
@@ -2156,6 +2657,9 @@ $('#fileIn').onchange = async e => {
     banners = (Array.isArray(d.banners) ? d.banners : [d.banner]).filter(isImg).slice(0, BANNER_MAX);
     const av = d.avatars || {};
     avatars = { T: isImg(av.T) ? av.T : '', R: isImg(av.R) ? av.R : '' };
+    notes = (Array.isArray(d.notes) ? d.notes : []).filter(n => n && n.text).map(n => ({
+      id: uid(), text: normText(n.text), ipa: String(n.ipa || ''), vi: String(n.vi || ''), note: String(n.note || ''),
+      also: String(n.also || ''), forms: n.forms !== false, type: String(n.type || ''), v2: String(n.v2 || ''), v3: String(n.v3 || '') }));
   } catch (err) {
     toast('Invalid file');
     return;
@@ -2168,8 +2672,9 @@ $('#fileIn').onchange = async e => {
   });
   if (r.btn === 'rep') {
     if (!confirm('All current data will be replaced by the data in the file. Continue?')) return;
-    db = { banners, avatars, topics, conv };
+    db = { banners, avatars, notes, topics, conv };
   } else if (r.btn === 'merge') {
+    notes.forEach(n => { if (!noteByText(n.text)) db.notes.push(n); });
     ['T', 'R'].forEach(s => { if (!db.avatars[s] && avatars[s]) db.avatars[s] = avatars[s]; });
     banners.forEach(b => { if (db.banners.length < BANNER_MAX && !db.banners.includes(b)) db.banners.push(b); });
     topics.forEach(nt => {
@@ -2196,6 +2701,7 @@ $('#fileIn').onchange = async e => {
     });
   } else return;
   save();
+  notesChanged();
   toast('Data imported');
   location.hash = '';
   render();
