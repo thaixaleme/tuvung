@@ -97,10 +97,24 @@ select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line)
 .pos{display:inline-block;font-size:11px;font-weight:700;color:var(--tc-d);background:var(--tc-bg);border-radius:6px;padding:1px 6px;vertical-align:middle}
 .vf{display:block;font-size:13px;color:var(--tc-d)}
 .back .vf{font-size:15px;margin-top:4px}
-/* Màn hình Irregular verbs */
-.irf{font-size:17px;font-weight:600}
-.irf span{cursor:pointer;color:var(--tc-d)}
-.irf i{font-style:normal;color:var(--muted);margin:0 6px;font-weight:400}
+/* Màn hình Irregular verbs: bảng kẻ ô, mỗi cột 1 màu, dòng chẵn lẻ xen kẽ.
+   Tìm kiếm: tô màu các dòng khớp (.hit), dòng đang chọn (.cur) tô đậm hơn */
+:root{--hit:#FFF6D6;--hit-cur:#FFE08A}
+@media (prefers-color-scheme:dark){:root{--hit:#3a3218;--hit-cur:#6b5410}}
+.irbar{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.irbar input{margin:0}
+.irbar .cnt{font-size:13px;color:var(--muted);min-width:46px;text-align:center}
+.irtable{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.irhead,.irrow{display:grid;grid-template-columns:1fr 1fr 1fr 40px}
+.irhead{position:sticky;top:0;z-index:1;background:var(--pri);color:#fff;font-size:12px;font-weight:700}
+.irhead span{padding:8px 8px;border-right:1px solid rgba(255,255,255,.25)}
+.irrow{border-bottom:1px solid var(--line);transition:background .25s}
+.irrow:nth-child(odd){background:var(--bg)}
+.irrow span{padding:8px 8px 2px;font-size:15px;font-weight:700;color:var(--tc-d);border-right:1px solid var(--line);cursor:pointer;word-break:break-word}
+.irrow .icon{min-width:36px;height:auto;font-size:18px;grid-row:span 2}
+.irrow .irvi{grid-column:1 / 4;padding:0 8px 7px;font-size:13px;color:var(--muted);border-right:1px solid var(--line)}
+.irrow.hit{background:var(--hit)}
+.irrow.cur{background:var(--hit-cur);box-shadow:inset 4px 0 0 var(--pri)}
 .nt{color:var(--danger);font-weight:600;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;cursor:pointer}
 #ntAdd{position:fixed;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
 .card [data-hl]{-webkit-user-select:text;user-select:text}
@@ -796,31 +810,60 @@ function checkSelection() {
   ntAdd.style.left = Math.min(Math.max(8, rc.left + rc.width / 2 - ntAdd.offsetWidth / 2), innerWidth - ntAdd.offsetWidth - 8) + 'px';
 }
 
-// Màn hình danh sách động từ bất quy tắc (mở từ màn hình tổng): tìm kiếm, chạm vào từng dạng để nghe
+// Màn hình danh sách động từ bất quy tắc (mở từ màn hình tổng): bảng kẻ ô, chạm vào từng dạng để nghe.
+// Tìm kiếm không lọc danh sách: cuộn tới dòng khớp và tô màu dòng đó; ▲ ▼ (hoặc Return) để chuyển giữa các dòng khớp.
 function renderIrregular() {
   setBar('Irregular verbs', '', []);
-  app.className = 'fill tc1';
-  app.innerHTML = `
-    <input type="search" id="irq" placeholder="Search: take, took, lấy…" autocomplete="off" autocapitalize="none" spellcheck="false" lang="en">
-    <p class="muted" id="irn"></p>
-    <ul class="list tlist" id="irl"></ul>`;
+  app.className = 'fill';
   const say = s => s.replace(/\//g, ' or ');
-  const draw = q => {
-    q = q.trim().toLowerCase();
-    const list = IRREG.filter(v => !q || [v.b, v.v2, v.v3, v.vi].some(s => s.toLowerCase().includes(q)));
-    $('#irn').textContent = `${list.length} / ${IRREG.length} verbs · V1 · V2 (past) · V3 (past participle) · tap a word to hear it`;
-    $('#irl').innerHTML = list.length ? list.map(v => `
-      <li class="item">
+  app.innerHTML = `
+    <div class="irbar">
+      <input type="search" id="irq" class="grow" placeholder="Search: take, took, lấy…" autocomplete="off" autocapitalize="none" spellcheck="false" lang="en" enterkeyhint="next">
+      <span class="cnt" id="irc"></span>
+      <button class="icon sm" id="irUp" aria-label="Previous match">▲</button>
+      <button class="icon sm" id="irDn" aria-label="Next match">▼</button>
+    </div>
+    <p class="muted">${IRREG.length} verbs · tap a word to hear it · 🔊 all three forms</p>
+    <div class="irtable" id="irl">
+      <div class="irhead"><span>V1</span><span>V2 (past)</span><span>V3 (p.p.)</span><span></span></div>
+      ${IRREG.map((v, i) => `<div class="irrow" data-i="${i}">
+        <span class="tc0" data-say="${esc(say(v.b))}">${esc(v.b)}</span>
+        <span class="tc1" data-say="${esc(say(v.v2))}">${esc(v.v2)}</span>
+        <span class="tc2" data-say="${esc(say(v.v3))}">${esc(v.v3)}</span>
         <button class="icon" data-say="${esc(say(v.b + ', ' + v.v2 + ', ' + v.v3))}" aria-label="Listen to all forms">🔊</button>
-        <div class="grow">
-          <div class="irf">${[v.b, v.v2, v.v3].map(f => `<span data-say="${esc(say(f))}">${esc(f)}</span>`).join('<i>·</i>')}</div>
-          <small>${esc(v.vi)}</small>
-        </div>
-      </li>`).join('') : '<li class="empty">Not found. Regular verbs (play → played) are not in this list.</li>';
+        <div class="irvi">${esc(v.vi)}</div>
+      </div>`).join('')}
+    </div>`;
+  const rows = [...document.querySelectorAll('#irl .irrow')];
+  let hits = [], cur = -1;
+  const go = k => { // chuyển tới dòng khớp thứ k
+    if (!hits.length) return;
+    cur = (k + hits.length) % hits.length;
+    rows.forEach(r => r.classList.remove('cur'));
+    const r = rows[hits[cur]];
+    r.classList.add('cur');
+    const box = $('#irl'); // đưa dòng vào giữa bảng (tính theo vị trí trên màn hình)
+    box.scrollTop += r.getBoundingClientRect().top - box.getBoundingClientRect().top - box.clientHeight / 2 + r.offsetHeight / 2;
+    $('#irc').textContent = `${cur + 1} / ${hits.length}`;
   };
-  $('#irq').oninput = e => draw(e.target.value);
+  const find = q => {
+    q = q.trim().toLowerCase();
+    rows.forEach(r => r.classList.remove('hit', 'cur'));
+    hits = [];
+    cur = -1;
+    if (!q) { $('#irc').textContent = ''; return; }
+    IRREG.forEach((v, i) => { if ([v.b, v.v2, v.v3, v.vi].some(s => s.toLowerCase().includes(q))) hits.push(i); });
+    hits.forEach(i => rows[i].classList.add('hit'));
+    if (!hits.length) { $('#irc').textContent = '0'; return; }
+    // Ưu tiên dòng có 1 dạng trùng khớp hoàn toàn (gõ "took" → dòng take, không phải mistake)
+    const exact = hits.findIndex(i => [IRREG[i].b, ...IRREG[i].v2.split('/'), ...IRREG[i].v3.split('/')].includes(q));
+    go(exact >= 0 ? exact : 0);
+  };
+  $('#irq').oninput = e => find(e.target.value);
+  $('#irq').onkeydown = e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); go(cur + 1); } };
+  $('#irUp').onclick = () => go(cur - 1);
+  $('#irDn').onclick = () => go(cur + 1);
   $('#irl').onclick = e => { const s = e.target.closest('[data-say]'); if (s) speak(s.dataset.say); };
-  draw('');
 }
 
 // Màn hình danh sách Notes (mở từ nút 📝 ở màn hình Vocabulary)
