@@ -225,6 +225,13 @@ dialog h2{margin:0 0 6px;font-size:19px}
 .prog{text-align:center;color:var(--muted);margin:14px 0 0}
 .card{background:var(--card);border:2px solid var(--tc);border-radius:20px;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;margin:10px 0;box-shadow:0 6px 20px rgba(0,0,0,.06);-webkit-user-select:none;user-select:none;cursor:pointer}
 .big{font-size:32px;font-weight:700;word-break:break-word}
+/* Thẻ Study: mỗi mặt 1 ngôn ngữ; mặt đã lật (isback) có nền màu nhạt; lật thẻ có hiệu ứng xoay (turn) */
+.card .mid{font-size:26px;font-weight:700;word-break:break-word}
+.card .cex{font-size:17px;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line);width:100%}
+.card .vf{font-size:15px;margin-top:4px}
+.card.isback{background:var(--tc-bg)}
+.card.turn{animation:cardturn .35s ease-out}
+@keyframes cardturn{from{transform:perspective(900px) rotateY(90deg)}to{transform:perspective(900px) rotateY(0)}}
 .back{margin-top:16px;padding:14px;border-radius:14px;background:var(--tc-bg);width:100%;font-size:20px}
 .back .ex{font-size:16px;color:var(--muted);margin-top:8px}
 .hint{color:var(--muted);font-size:14px;margin-top:14px}
@@ -1740,7 +1747,6 @@ function renderStudy(t, sub) {
       <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Shuffle</button>
       <button class="chip ${opt.onlyNew ? 'on' : ''}" data-o="onlyNew">Not learned only</button>
       ${words.some(w => w.ex) ? `<button class="chip ${opt.stEx ? 'on' : ''}" data-o="stEx">Example</button>` : ''}
-      ${opt.stEx && words.some(w => w.exvi) ? exviChipHtml() : ''}
     </div>`;
   const n = st.ids.length;
   let body;
@@ -1751,18 +1757,19 @@ function renderStudy(t, sub) {
       <button class="btn primary" id="again">Study again</button></div>`;
   } else {
     const w = words.find(x => x.id === st.ids[st.i]);
-    const enHtml = `<div class="big">${esc(w.en)}</div>${w.ipa ? `<div class="ipa">${esc(w.ipa)}</div>` : ''}`;
-    const viHtml = `<div class="${opt.dir === 'vi' ? 'big' : ''}">${esc(w.vi)}</div>`;
-    const front = opt.dir === 'en' ? enHtml : viHtml;
-    // Mặt sau thẻ: nghĩa (hoặc từ tiếng Anh) + câu ví dụ, dịch câu ví dụ (nút "Example" tắt thì không hiện câu ví dụ)
-    const back = (opt.dir === 'en' ? viHtml : enHtml) + (w.type ? `<div>${typeTagHtml(w)}</div>` : '') + verbFormsHtml(w, 'div') +
-      (opt.stEx && w.ex ? `<div class="ex" data-hl="${esc(w.ex)}">${hlHtml(w.ex)}</div>` : '') +
-      (opt.stEx && w.exvi ? `<div class="exvi">${esc(w.exvi)}</div>` : '');
+    // Mỗi mặt thẻ là 1 ngôn ngữ. Lật thẻ thì đổi hẳn sang mặt kia.
+    // Mặt tiếng Anh: từ, phiên âm, loại từ, V2 / V3, câu ví dụ tiếng Anh (khi nút "Example" bật).
+    // Mặt tiếng Việt: nghĩa, dịch câu ví dụ (khi nút "Example" bật).
+    const enSide = `<div class="big">${esc(w.en)}</div>${w.ipa ? `<div class="ipa">${esc(w.ipa)}</div>` : ''}` +
+      (w.type ? `<div>${typeTagHtml(w)}</div>` : '') + verbFormsHtml(w, 'div') +
+      (opt.stEx && w.ex ? `<div class="cex" data-hl="${esc(w.ex)}">${hlHtml(w.ex)}</div>` : '');
+    const viSide = `<div class="mid">${esc(w.vi)}</div>` + (opt.stEx && w.exvi ? `<div class="cex">${esc(w.exvi)}</div>` : '');
+    const showEn = (opt.dir === 'en') !== st.flip; // chưa lật: mặt theo chiều học; đã lật: mặt còn lại
     body = `
       <p class="prog">${st.i + 1} / ${n}</p>
-      <div class="card" id="card">
-        ${front}
-        ${st.flip ? `<div class="back">${back}</div>` : '<div class="hint">Tap the card to see the answer</div>'}
+      <div class="card ${st.flip ? 'isback' : ''} ${st.anim ? 'turn' : ''}" id="card">
+        ${showEn ? enSide : viSide}
+        <div class="hint">${st.flip ? 'Tap to flip back' : 'Tap the card to flip'}</div>
       </div>
       <div class="row row3">
         <button class="btn grow" id="say">🔊 Word</button>
@@ -1781,7 +1788,9 @@ function renderStudy(t, sub) {
         if (nt) { showNote(nt.dataset.nt); return; }
         if (String(window.getSelection() || '').trim()) return; // đang bôi đen chữ: không lật thẻ
         st.flip = !st.flip;
+        st.anim = true; // hiệu ứng lật khi vẽ lại thẻ
         renderStudy(t, sub);
+        st.anim = false;
       };
       let x0 = null;
       card.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
@@ -1801,7 +1810,6 @@ function renderStudy(t, sub) {
   }
   app.className = tcClass(t);
   app.innerHTML = opts + body;
-  bindExviChip();
   app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
     const k = b.dataset.o;
     opt[k] = k === 'dir' ? (opt.dir === 'en' ? 'vi' : 'en') : !opt[k];
