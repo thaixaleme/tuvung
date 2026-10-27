@@ -116,7 +116,9 @@ select{font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line)
 .irrow.hit{background:var(--hit)}
 .irrow.cur{background:var(--hit-cur);box-shadow:inset 4px 0 0 var(--pri)}
 .nt{color:var(--danger);font-weight:600;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px;cursor:pointer}
-#ntAdd{position:fixed;z-index:30;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#ntAdd{position:fixed;z-index:30;left:50%;transform:translateX(-50%);box-shadow:0 4px 14px rgba(0,0,0,.25);padding:12px 22px;font-size:16px}
+#ntAdd.bottom{bottom:calc(env(safe-area-inset-bottom) + 16px)}
+#ntAdd.top{top:calc(env(safe-area-inset-top) + 12px)}
 .card [data-hl]{-webkit-user-select:text;user-select:text}
 .notes .ntc{color:var(--danger)}
 /* Dịch câu ví dụ (Example meaning): ẩn / hiện bằng nút "Example meaning" */
@@ -786,8 +788,10 @@ function removeNote(n) {
   toast('Removed from Notes');
 }
 
-// Bôi đen chữ trong câu ví dụ / câu thoại → hiện nút "＋ Add to Notes" ngay dưới chữ đã chọn
-// (iPhone không cho thêm nút vào menu Copy / Look Up của iOS, nên app hiện nút riêng)
+// Bôi đen chữ trong câu ví dụ / câu thoại → hiện nút "＋ Add to Notes" cố định ở đáy màn hình
+// (iPhone không cho thêm nút vào menu Copy / Look Up của iOS, nên app hiện nút riêng;
+//  menu iOS hiện sát chữ đã chọn và che nút nếu đặt cạnh chữ.
+//  Chữ chọn nằm ở 1/3 dưới màn hình thì nút chuyển lên đầu màn hình)
 const ntAdd = document.createElement('button');
 ntAdd.id = 'ntAdd';
 ntAdd.className = 'btn small primary';
@@ -811,10 +815,10 @@ function checkSelection() {
   if (!text || text.length > 60 || !node || !node.closest('[data-hl]') || $('#dlg').open) { ntAdd.hidden = true; return; }
   const rc = sel.getRangeAt(0).getBoundingClientRect();
   ntAdd.dataset.text = text;
+  const low = rc.bottom > innerHeight * 2 / 3;
+  ntAdd.classList.toggle('top', low);
+  ntAdd.classList.toggle('bottom', !low);
   ntAdd.hidden = false;
-  const top = rc.bottom + 10 + ntAdd.offsetHeight > innerHeight ? rc.top - ntAdd.offsetHeight - 10 : rc.bottom + 10;
-  ntAdd.style.top = Math.max(8, top) + 'px';
-  ntAdd.style.left = Math.min(Math.max(8, rc.left + rc.width / 2 - ntAdd.offsetWidth / 2), innerWidth - ntAdd.offsetWidth - 8) + 'px';
 }
 
 // Màn hình danh sách động từ bất quy tắc (mở từ màn hình tổng): bảng kẻ ô, chạm vào từng dạng để nghe.
