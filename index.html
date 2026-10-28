@@ -77,6 +77,10 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .done-tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;background:var(--ok);vertical-align:2px}
 .item.alldone{box-shadow:inset 4px 0 0 var(--ok)}
 .item.alldone .bar i{background:var(--ok)}
+/* Tìm từ ở màn hình Vocabulary: mở chủ đề từ kết quả → từ đó nháy nền vàng */
+#vres .where{font-size:13px}
+#words>li.flash{animation:wflash 2s ease-out}
+@keyframes wflash{0%,40%{background:var(--hit-cur)}100%{background:var(--card)}}
 #words>li.item,#convs>li.item{border-left:4px solid var(--tc)}
 #words>li.divider{list-style:none;padding:6px 12px;font-size:13px;font-weight:700;color:var(--ok);background:var(--bg)}
 .imgpick{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
@@ -1404,6 +1408,41 @@ $('#avatarIn').onchange = async e => {
 };
 
 // ===== Từ vựng: danh sách chủ đề =====
+let vq = '';          // chữ đang tìm ở màn hình Vocabulary (giữ lại khi quay về)
+let flashWord = null; // id từ cần làm nổi bật khi mở chủ đề từ kết quả tìm kiếm
+
+// Bỏ dấu tiếng Việt để so sánh: "xin chào" → "xin chao", "đ" → "d"
+function fold(s) {
+  return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+}
+
+// Tìm từ trong tất cả chủ đề / chủ đề con: tiếng Anh (cả V2 / V3) và nghĩa tiếng Việt.
+// Gõ không dấu → so sánh bỏ dấu; gõ có dấu → so sánh đúng dấu.
+function drawSearch() {
+  const q = vq.trim().toLowerCase();
+  const res = $('#vres');
+  $('.tlist').hidden = $('#addT').hidden = !!q;
+  res.hidden = !q;
+  if (!q) return;
+  const norm = fold(q) === q ? fold : s => String(s || '').toLowerCase();
+  const hits = [];
+  db.topics.forEach(t => [null].concat(t.subs || []).forEach(sub =>
+    (sub || t).words.forEach(w => {
+      const en = norm([w.en, w.v2, w.v3].join(' ')), vi = norm(w.vi);
+      if (en.includes(q) || vi.includes(q)) hits.push({ t, sub, w, rank: norm(w.en).startsWith(q) || vi.startsWith(q) ? 0 : 1 });
+    })));
+  hits.sort((a, b) => a.rank - b.rank || a.w.en.localeCompare(b.w.en));
+  res.innerHTML = hits.length ? hits.slice(0, 100).map(({ t, sub, w }) => `
+    <li><a class="item" href="#t/${t.id}${sub ? '/' + sub.id : ''}" data-w="${w.id}">
+      <button class="icon" data-say="${esc(w.en)}" aria-label="Pronounce">🔊</button>
+      <div class="grow"><b>${esc(w.en)}</b> ${typeTagHtml(w)} ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
+        ${w.learned ? '<span style="color:var(--ok)">✓</span>' : ''}
+        <div>${esc(w.vi)}</div><small class="where">${esc(t.name)}${sub ? ' › ' + esc(sub.name) : ''}</small></div>
+      <span class="chev">›</span></a></li>`).join('') +
+    (hits.length > 100 ? `<li class="empty">Showing 100 of ${hits.length}. Type more to narrow down.</li>` : '')
+    : '<li class="empty">No words found.</li>';
+}
+
 // Chế độ sắp xếp (nút ↕): mỗi chủ đề có nút ↑ / ↓ để đổi vị trí, bấm Done để kết thúc.
 function renderVocab() {
   st = null;
@@ -1415,6 +1454,8 @@ function renderVocab() {
   app.className = 'fill';
   app.innerHTML = `
     ${so ? '<p class="muted">Use ↑ ↓ to change the order. Tap Done when finished.</p>' : ''}
+    ${so ? '' : `<input type="search" id="vq" placeholder="Search words (English / Tiếng Việt)…" value="${esc(vq)}">
+      <ul class="list" id="vres" hidden></ul>`}
     <ul class="list tlist">${db.topics.length ? db.topics.map((t, i) => {
       const ws = allWords(t);
       const ns = (t.subs || []).length;
@@ -1430,7 +1471,18 @@ function renderVocab() {
       const b = e.target.closest('[data-mv]');
       if (b && moveIn(db.topics, +b.dataset.i, +b.dataset.mv)) keepScroll('.tlist', renderVocab);
     };
-  } else $('#addT').onclick = addTopic;
+  } else {
+    $('#addT').onclick = addTopic;
+    const q = $('#vq');
+    q.oninput = () => { vq = q.value; drawSearch(); };
+    $('#vres').onclick = e => {
+      const say = e.target.closest('[data-say]');
+      if (say) { e.preventDefault(); speak(say.dataset.say); return; }
+      const a = e.target.closest('[data-w]');
+      if (a) flashWord = a.dataset.w; // mở chủ đề rồi làm nổi bật từ này
+    };
+    drawSearch();
+  }
 }
 
 // Tên + số từ + thanh tiến độ của chủ đề / chủ đề con (dùng chung cho 2 danh sách).
@@ -1634,6 +1686,13 @@ function drawWords(t, q) {
   $('#words').innerHTML = ws.length
     ? todo.map(row).join('') + (done.length ? `<li class="divider">✓ Learned (${done.length})</li>` + done.map(row).join('') : '')
     : `<li class="empty">${t.words.length ? 'Not found.' : (ed ? 'No words yet. Tap “＋ Add word”.' : 'No words yet. Tap ⚙ to add words.')}</li>`;
+  // Mở từ kết quả tìm kiếm ở màn hình Vocabulary: cuộn đến từ đó và nháy nền
+  if (flashWord) {
+    const b = $('#words').querySelector(`[data-learn="${flashWord}"]`);
+    flashWord = null;
+    // cuộn sau khi render() đã cuộn về đầu trang
+    if (b) { const li = b.closest('li'); li.classList.add('flash'); setTimeout(() => li.scrollIntoView({ block: 'center' }), 0); }
+  }
 }
 
 // Dùng chung cho chủ đề từ vựng và chủ đề hội thoại
