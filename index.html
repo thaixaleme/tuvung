@@ -73,6 +73,10 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 .thumb.big{width:88px;height:88px;font-size:26px}
 .bar{height:5px;border-radius:3px;background:var(--line);margin-top:6px;overflow:hidden;max-width:200px}
 .bar i{display:block;height:100%;background:var(--tc);border-radius:3px}
+/* Chủ đề / chủ đề con đã thuộc hết: huy hiệu ✓ Done, thanh tiến độ và viền trái màu xanh lá */
+.done-tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700;color:#fff;background:var(--ok);vertical-align:2px}
+.item.alldone{box-shadow:inset 4px 0 0 var(--ok)}
+.item.alldone .bar i{background:var(--ok)}
 #words>li.item,#convs>li.item{border-left:4px solid var(--tc)}
 #words>li.divider{list-style:none;padding:6px 12px;font-size:13px;font-weight:700;color:var(--ok);background:var(--bg)}
 .imgpick{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
@@ -1413,15 +1417,12 @@ function renderVocab() {
     ${so ? '<p class="muted">Use ↑ ↓ to change the order. Tap Done when finished.</p>' : ''}
     <ul class="list tlist">${db.topics.length ? db.topics.map((t, i) => {
       const ws = allWords(t);
-      const n = ws.filter(w => w.learned).length;
-      const pct = ws.length ? Math.round(n * 100 / ws.length) : 0;
       const ns = (t.subs || []).length;
-      const inner = `${thumbHtml(t.img)}
-        <div class="grow"><b>${esc(t.name)}</b><small>${ns ? ns + ' subtopics · ' : ''}${ws.length} words · ${n} learned</small>
-          <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+      const inner = thumbHtml(t.img) + progHtml(t.name, ws, ns ? ns + ' subtopics · ' : '');
+      const dn = isAllDone(ws) ? 'alldone' : '';
       return so
-        ? `<li><div class="item topic ${tcClass(t)}">${inner}${mvBtns(i, db.topics.length)}</div></li>`
-        : `<li><a class="item topic ${tcClass(t)}" href="#t/${t.id}">${inner}<span class="chev">›</span></a></li>`;
+        ? `<li><div class="item topic ${tcClass(t)} ${dn}">${inner}${mvBtns(i, db.topics.length)}</div></li>`
+        : `<li><a class="item topic ${tcClass(t)} ${dn}" href="#t/${t.id}">${inner}<span class="chev">›</span></a></li>`;
     }).join('') : '<li class="empty">No topics yet.</li>'}</ul>
     ${so ? '' : '<button class="btn primary block" id="addT">＋ Add topic</button>'}`;
   if (so) {
@@ -1431,6 +1432,17 @@ function renderVocab() {
     };
   } else $('#addT').onclick = addTopic;
 }
+
+// Tên + số từ + thanh tiến độ của chủ đề / chủ đề con (dùng chung cho 2 danh sách).
+// Thuộc hết tất cả các từ → thêm huy hiệu "✓ Done"
+function progHtml(name, ws, pre) {
+  const n = ws.filter(w => w.learned).length;
+  const pct = ws.length ? Math.round(n * 100 / ws.length) : 0;
+  return `<div class="grow"><b>${esc(name)}</b>${isAllDone(ws) ? '<span class="done-tag">✓ Done</span>' : ''}
+    <small>${pre || ''}${ws.length} words · ${n} learned</small>
+    <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+}
+function isAllDone(ws) { return ws.length > 0 && ws.every(w => w.learned); }
 
 function topicFields(t) {
   return [
@@ -1478,14 +1490,12 @@ function renderTopic(t, sub) {
     ${ed && !sub ? '<div class="row"><button class="btn grow" id="addS">＋ Add subtopic</button></div>' : ''}
     ${studyWords.some(w => w.exvi) ? `<div class="opts">${exviChipHtml()}</div>` : ''}
     ${subs.length ? `<ul class="list" id="subs">${subs.map((s, i) => {
-      const n = s.words.filter(w => w.learned).length;
-      const pct = s.words.length ? Math.round(n * 100 / s.words.length) : 0;
-      const inner = `<div class="grow"><b>${esc(s.name)}</b><small>${s.words.length} words · ${n} learned</small>
-          <div class="bar"><i style="width:${pct}%"></i></div></div>`;
+      const inner = progHtml(s.name, s.words);
+      const dn = isAllDone(s.words) ? 'alldone' : '';
       // Chế độ sửa: thêm nút ↑ / ↓ để đổi thứ tự chủ đề con (chạm vào tên vẫn mở chủ đề con)
       return ed
-        ? `<li class="item"><a class="grow" href="#t/${t.id}/${s.id}" style="color:inherit;text-decoration:none">${inner}</a>${mvBtns(i, subs.length)}</li>`
-        : `<li><a class="item" href="#t/${t.id}/${s.id}">${inner}<span class="chev">›</span></a></li>`;
+        ? `<li class="item ${dn}"><a class="grow" href="#t/${t.id}/${s.id}" style="color:inherit;text-decoration:none">${inner}</a>${mvBtns(i, subs.length)}</li>`
+        : `<li><a class="item ${dn}" href="#t/${t.id}/${s.id}">${inner}<span class="chev">›</span></a></li>`;
     }).join('')}</ul>` : ''}
     ${box.words.length || !subs.length ? `
       ${subs.length ? '<p class="muted">Words in this topic</p>' : ''}
