@@ -87,6 +87,23 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 @keyframes wflash{0%,40%{background:var(--hit-cur)}100%{background:var(--card)}}
 #words>li.item,#convs>li.item{border-left:4px solid var(--tc)}
 #words>li.divider{list-style:none;padding:6px 12px;font-size:13px;font-weight:700;color:var(--ok);background:var(--bg)}
+/* Danh sách từ: mỗi từ 1 thẻ riêng, chữ to, câu ví dụ trong khung màu. Chạm vào thẻ là nghe từ */
+#words.wl{background:none;border:0;border-radius:0;overflow:visible}
+#words.wl>li{border-bottom:0}
+#words.wl>li.item{display:block;position:relative;margin:0 0 10px;padding:14px 56px 14px 16px;background:var(--card);border:1px solid var(--line);border-left:5px solid var(--tc);border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);cursor:pointer}
+#words.wl>li.divider{background:none;padding:8px 4px}
+#words.wl>li.say{animation:wsay .6s ease-out}
+@keyframes wsay{0%{box-shadow:0 0 0 4px var(--tc)}100%{box-shadow:0 2px 8px rgba(0,0,0,.05)}}
+.wl .wen{font-size:22px;font-weight:700;color:var(--tc-d)}
+.wl .ipa{font-size:15px}
+.wl .wvi{font-size:17px;margin-top:2px}
+.wl .vf{font-size:14px}
+.wl .exbox{display:flex;gap:8px;align-items:flex-start;margin:10px -40px 0 0;padding:8px 10px;border-radius:10px;background:var(--tc-bg)}
+.wl .exbtn{flex:none;width:34px;height:34px;border-radius:50%;border:0;background:var(--card);font-size:16px;padding:0}
+.wl .ex{font-size:16px;color:var(--text)}
+.wl .exvi{font-size:14px;margin-top:2px}
+.wl .chk{position:absolute;top:12px;right:10px;width:38px;min-width:38px;height:38px;border-radius:50%;border:2px solid var(--line);opacity:1;color:var(--line);font-size:18px}
+.wl .chk.on{background:var(--ok);border-color:var(--ok);color:#fff}
 .imgpick{display:flex;align-items:center;gap:14px;margin:6px 0 10px}
 .imgpick .btns{display:flex;flex-direction:column;gap:8px}
 .chev{color:var(--muted);font-size:22px}
@@ -1627,7 +1644,7 @@ function renderTopic(t, sub) {
       ${subs.length ? '<p class="muted">Words in this topic</p>' : ''}
       ${ed && box.words.length ? '<p class="muted">Tap a word to edit or delete it.</p>' : ''}
       ${box.words.length > 5 ? '<input type="search" id="q" placeholder="Search…">' : ''}
-      <ul class="list" id="words"></ul>` : ''}`;
+      <ul class="list wl" id="words"></ul>` : ''}`;
   $('#study').onclick = () => { location.hash = 's/' + path; };
   bindExviChip();
   if (ed) {
@@ -1657,16 +1674,22 @@ function renderTopic(t, sub) {
     if (nt) { showNote(nt.dataset.nt); return; }
     const tw = editing === box.id ? '' : tapWord(e); // chạm 1 từ trong câu: đọc và xem nghĩa
     if (tw) { showWord(tw); return; }
-    const say = e.target.closest('[data-say]');
     const learn = e.target.closest('[data-learn]');
     const edit = e.target.closest('[data-edit]');
-    if (say) speak(say.dataset.say);
-    else if (learn) {
+    const say = e.target.closest('[data-say]');
+    if (learn) {
       const w = box.words.find(x => x.id === learn.dataset.learn);
       w.learned = !w.learned;
       save();
       drawWords(box, q ? q.value : ''); // sắp xếp lại: từ chưa thuộc lên trên
     } else if (edit && editing === box.id) editWord(t, box, box.words.find(x => x.id === edit.dataset.edit));
+    else if (say && !String(window.getSelection() || '').trim()) { // đang bôi đen chữ thì không đọc
+      speak(say.dataset.say);
+      const li = say.closest('li'); // thẻ sáng viền lên khi chạm
+      li.classList.remove('say');
+      void li.offsetWidth;
+      li.classList.add('say');
+    }
   };
   drawWords(box, '');
 }
@@ -1746,17 +1769,20 @@ function drawWords(t, q) {
   const ws = t.words.filter(w => !q || (w.en + ' ' + w.vi).toLowerCase().includes(q));
   const todo = ws.filter(w => !w.learned);
   const done = ws.filter(w => w.learned);
+  // Mỗi từ là 1 thẻ: chạm vào thẻ → nghe từ (chế độ sửa: mở hộp sửa).
+  // Khung ví dụ: nút 🔈 hoặc chạm chỗ trống → nghe cả câu; chạm 1 từ trong câu → xem nghĩa từ đó
   const row = w => `
-    <li class="item">
-      <button class="icon" data-say="${esc(w.en)}" aria-label="Pronounce">🔊</button>
-      <div class="grow" ${ed ? `data-edit="${w.id}" style="cursor:pointer"` : ''}>
-        <b ${ed ? '' : `data-say="${esc(w.en)}"`}>${esc(w.en)}</b> ${typeTagHtml(w)} ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''}
-        <div>${esc(w.vi)}</div>
-        ${verbFormsHtml(w)}
-        ${w.ex ? `<small class="ex">${ed ? '' : `<button class="spk" data-say="${esc(w.ex)}" aria-label="Listen to the example">🔈</button>`}<span data-hl="${esc(w.ex)}">${hlHtml(w.ex)}</span></small>` : ''}
-        ${w.exvi ? `<small class="exvi">${esc(w.exvi)}</small>` : ''}
-      </div>
-      ${ed ? `<span class="pen" data-edit="${w.id}">✎</span>` : ''}
+    <li class="item" ${ed ? `data-edit="${w.id}"` : `data-say="${esc(w.en)}"`}>
+      <div><span class="wen">${esc(w.en)}</span> ${typeTagHtml(w)} ${w.ipa ? `<span class="ipa">${esc(w.ipa)}</span>` : ''} ${ed ? '<span class="pen">✎</span>' : ''}</div>
+      <div class="wvi">${esc(w.vi)}</div>
+      ${verbFormsHtml(w)}
+      ${w.ex || w.exvi ? `<div class="exbox" ${ed || !w.ex ? '' : `data-say="${esc(w.ex)}"`}>
+        ${w.ex && !ed ? `<button class="exbtn" data-say="${esc(w.ex)}" aria-label="Listen to the example">🔈</button>` : ''}
+        <div class="grow">
+          ${w.ex ? `<small class="ex"><span data-hl="${esc(w.ex)}">${hlHtml(w.ex)}</span></small>` : ''}
+          ${w.exvi ? `<small class="exvi">${esc(w.exvi)}</small>` : ''}
+        </div>
+      </div>` : ''}
       <button class="icon chk ${w.learned ? 'on' : ''}" data-learn="${w.id}" aria-label="Learned">✓</button>
     </li>`;
   $('#words').innerHTML = ws.length
