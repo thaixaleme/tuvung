@@ -80,6 +80,10 @@ button{font:inherit;color:inherit;touch-action:manipulation;cursor:pointer;-webk
 /* Tìm từ ở màn hình Vocabulary: mở chủ đề từ kết quả → từ đó nháy nền vàng */
 #vres .where{font-size:13px}
 #words>li.flash{animation:wflash 2s ease-out}
+/* Import from GitHub: nhãn đã import / có bản mới */
+.ghtag{font-size:12px;font-weight:700;margin-left:6px}
+.ghtag.done{color:var(--ok)}
+.ghtag.upd{color:var(--pri)}
 @keyframes wflash{0%,40%{background:var(--hit-cur)}100%{background:var(--card)}}
 #words>li.item,#convs>li.item{border-left:4px solid var(--tc)}
 #words>li.divider{list-style:none;padding:6px 12px;font-size:13px;font-weight:700;color:var(--ok);background:var(--bg)}
@@ -484,7 +488,8 @@ const app = $('#app');
 // ===== Dữ liệu =====
 let db = load();
 let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, stEx: true, lsRate: 0.9, cpRate: 0.9, cpMode: 'cont', cpShowVi: true, exvi: true,
-  theme: 'ocean', voiceV: '', voiceT: '', voiceR: '', nameT: 'TH', nameR: 'TR' }, readJSON(OPT_KEY));
+  theme: 'ocean', voiceV: '', voiceT: '', voiceR: '', nameT: 'TH', nameR: 'TR',
+  ghOk: '', ghDone: {} }, readJSON(OPT_KEY)); // ghOk: đã nhập đúng mật khẩu Import from GitHub; ghDone: {tên file: sha đã import}
 if (opt.nameT === 'THAI') opt.nameT = 'TH';   // tên mặc định cũ → tên mặc định mới
 if (opt.nameR === 'TRANG') opt.nameR = 'TR';
 document.documentElement.dataset.theme = opt.theme;
@@ -829,6 +834,70 @@ function checkSelection() {
   ntAdd.hidden = false;
 }
 
+// Chạm 1 từ trong câu ví dụ / câu thoại: trả về từ tiếng Anh tại điểm chạm ('' nếu không chạm vào chữ)
+function tapWord(e) {
+  if (!e.target.closest('[data-hl]') || String(window.getSelection() || '').trim()) return '';
+  let node = null, i = 0;
+  if (document.caretRangeFromPoint) { // Safari / Chrome
+    const r = document.caretRangeFromPoint(e.clientX, e.clientY);
+    if (r) { node = r.startContainer; i = r.startOffset; }
+  } else if (document.caretPositionFromPoint) { // Firefox
+    const p = document.caretPositionFromPoint(e.clientX, e.clientY);
+    if (p) { node = p.offsetNode; i = p.offset; }
+  }
+  if (!node || node.nodeType !== 3) return '';
+  const s = node.data, isL = c => /[A-Za-z'’]/.test(c || '');
+  const hit = j => { // điểm chạm nằm trên chữ cái thứ j
+    if (!isL(s[j])) return false;
+    const r = document.createRange();
+    r.setStart(node, j);
+    r.setEnd(node, j + 1);
+    const b = r.getBoundingClientRect();
+    return e.clientX >= b.left && e.clientX <= b.right && e.clientY >= b.top - 2 && e.clientY <= b.bottom + 2;
+  };
+  if (!hit(i)) { if (hit(i - 1)) i--; else return ''; } // chạm vào khoảng trắng / dấu câu
+  let a = i, b = i + 1;
+  while (a > 0 && isL(s[a - 1])) a--;
+  while (b < s.length && isL(s[b])) b++;
+  return s.slice(a, b).replace(/^['’]+|['’]+$/g, '');
+}
+
+// Tra từ trong từ vựng của mình (từ gốc, V2 / V3, bỏ đuôi -s / -es / -ed / -ing), không có thì tra bảng động từ bất quy tắc
+function lookupWord(word) {
+  const k = word.toLowerCase().replace(/’/g, "'").replace(/'s$/, '');
+  const cands = [k];
+  [[/ies$/, 'y'], [/es$/, ''], [/s$/, ''], [/ied$/, 'y'], [/ed$/, ''], [/ed$/, 'e'], [/d$/, ''], [/ing$/, ''], [/ing$/, 'e']]
+    .forEach(([re, rep]) => { if (re.test(k)) cands.push(k.replace(re, rep)); });
+  cands.slice(1).forEach(c => { if (/([b-df-hj-np-tv-z])\1$/.test(c)) cands.push(c.slice(0, -1)); }); // stopped → stopp → stop
+  const forms = s => String(s || '').toLowerCase().split('/').map(x => x.trim());
+  const hits = [];
+  db.topics.forEach(t => [null].concat(t.subs || []).forEach(sub =>
+    (sub || t).words.forEach(w => {
+      if (cands.some(c => [w.en.toLowerCase().trim(), ...forms(w.v2), ...forms(w.v3)].includes(c))) hits.push({ t, sub, w });
+    })));
+  if (hits.length) return hits;
+  return IRREG.filter(v => cands.some(c => [...forms(v.b), ...forms(v.v2), ...forms(v.v3)].includes(c)))
+    .map(v => ({ w: { en: v.b, v2: v.v2, v3: v.v3, vi: v.vi, type: '' } }));
+}
+
+// Hộp nghĩa khi chạm 1 từ: đọc từ, hiện nghĩa (tối đa 3 kết quả)
+async function showWord(word) {
+  speak(word);
+  const hits = lookupWord(word);
+  const r = await ask({
+    title: word,
+    msg: hits.length ? hits.slice(0, 3).map(({ t, sub, w }) => [
+      w.en + (w.type ? ' · ' + TYPE_TAG[w.type] : '') + (w.ipa ? ' ' + w.ipa : ''),
+      w.vi,
+      w.v2 || w.v3 ? `V2: ${w.v2 || '–'} · V3: ${w.v3 || '–'}` : '',
+      t ? '(' + t.name + (sub ? ' › ' + sub.name : '') + ')' : '(Irregular verbs)'
+    ].filter(Boolean).join('\n')).join('\n\n') : 'Not in your list.',
+    buttons: [{ label: '🔊 Listen', value: null, keep: 1, run: () => speak(word) },
+      { label: '＋ Add to Notes', value: 'add' }, { label: 'Close', value: null, cls: 'primary' }]
+  });
+  if (r.btn === 'add') editNote(null, word);
+}
+
 // Màn hình danh sách động từ bất quy tắc (mở từ màn hình tổng): bảng kẻ ô, chạm vào từng dạng để nghe.
 // Tìm kiếm không lọc danh sách: cuộn tới dòng khớp và tô màu dòng đó; ▲ ▼ (hoặc Return) để chuyển giữa các dòng khớp.
 function renderIrregular() {
@@ -994,7 +1063,8 @@ function ask({ title, msg, fields = [], buttons, onChange }) {
           </div>`;
       }
       const attr = `name="${f.name}" placeholder="${esc(f.ph || '')}" autocomplete="off"` +
-        (f.en ? ' autocapitalize="none" spellcheck="false" lang="en"' : '');
+        (f.en || f.password ? ' autocapitalize="none" spellcheck="false" lang="en"' : '') +
+        (f.password ? ' type="password"' : '');
       const input = f.select // f.select: [[giá trị, nhãn], ...]
         ? `<select name="${f.name}" style="display:block;width:100%;margin-top:4px">${f.select.map(([v, l]) =>
             `<option value="${esc(v)}" ${v === (f.value || '') ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`
@@ -1179,6 +1249,7 @@ function render() {
   else if (page === 'set') renderSettings();
   else if (page === 'n') renderNotes();
   else if (page === 'irr') renderIrregular();
+  else if (page === 'gh') renderGitHub();
   else renderHub();
   window.scrollTo(0, 0);
 }
@@ -1345,6 +1416,8 @@ function renderSettings() {
         Row 1 must be the header: Subtopic | Word | Type | V2 | V3 | IPA | Meaning | Example | Example meaning.
         Word and Meaning are required. Each import creates new topics (existing topics are not changed).</p>
       <div class="row"><button class="btn grow" id="xls">Import Excel (.xlsx)</button></div>
+      <p class="muted">Or import a file uploaded to the “myexcel” folder of the GitHub repository (needs internet).</p>
+      <div class="row"><button class="btn grow" id="gh">Import from GitHub</button></div>
     </section>`;
   app.querySelectorAll('[data-th]').forEach(b => b.onclick = () => {
     opt.theme = b.dataset.th;
@@ -1392,6 +1465,7 @@ function renderSettings() {
   $('#exp').onclick = exportData;
   $('#imp').onclick = () => $('#fileIn').click();
   $('#xls').onclick = () => $('#xlsIn').click();
+  $('#gh').onclick = openGitHub;
 }
 
 // Chọn ảnh đại diện THAI / TRANG (cắt vuông, thu nhỏ như ảnh chủ đề)
@@ -1581,6 +1655,8 @@ function renderTopic(t, sub) {
   words.onclick = e => {
     const nt = editing === box.id ? null : e.target.closest('.nt'); // chạm chữ đỏ: xem nghĩa trong Notes
     if (nt) { showNote(nt.dataset.nt); return; }
+    const tw = editing === box.id ? '' : tapWord(e); // chạm 1 từ trong câu: đọc và xem nghĩa
+    if (tw) { showWord(tw); return; }
     const say = e.target.closest('[data-say]');
     const learn = e.target.closest('[data-learn]');
     const edit = e.target.closest('[data-edit]');
@@ -1859,6 +1935,8 @@ function renderStudy(t, sub) {
       card.onclick = e => {
         const nt = e.target.closest('.nt'); // chạm chữ đỏ: xem nghĩa, không lật thẻ
         if (nt) { showNote(nt.dataset.nt); return; }
+        const tw = tapWord(e); // chạm 1 từ trong câu ví dụ: đọc và xem nghĩa, không lật thẻ
+        if (tw) { showWord(tw); return; }
         if (String(window.getSelection() || '').trim()) return; // đang bôi đen chữ: không lật thẻ
         st.flip = !st.flip;
         st.anim = true; // hiệu ứng lật khi vẽ lại thẻ
@@ -2195,6 +2273,8 @@ function plBind() {
   $('#plist').onclick = e => {
     const nt = e.target.closest('.nt'); // chạm chữ đỏ: xem nghĩa trong Notes (không đổi vị trí đọc)
     if (nt) { showNote(nt.dataset.nt); return; }
+    const tw = tapWord(e); // chạm 1 từ trong câu: đọc và xem nghĩa (không đổi vị trí đọc)
+    if (tw) { if (pl.playing) { plStop(); plUpdate(); } showWord(tw); return; } // đang phát thì dừng trước
     if (String(window.getSelection() || '').trim()) return; // đang bôi đen chữ
     const r = e.target.closest('[data-k]');
     if (r) plStart(+r.dataset.k);
@@ -2694,10 +2774,15 @@ $('#xlsIn').onchange = async e => {
   let sheets;
   try { sheets = await readXlsx(f); }
   catch (err) { alert('Could not read this file. Please save it as .xlsx and try again.'); return; }
+  importSheets(sheets);
+};
+
+// Dùng chung cho Import Excel (chọn file) và Import from GitHub. Trả về true nếu đã import.
+async function importSheets(sheets) {
   const { plan, skipped } = planXlsx(sheets);
   if (!plan.length) {
     alert('No sheet with "Word" and "Meaning" columns was found.\n\nRow 1 should be:\nSubtopic | Word | IPA | Meaning | Example | Example meaning');
-    return;
+    return false;
   }
   const preview = applyXlsx(JSON.parse(JSON.stringify(db.topics)), plan); // chạy thử trên bản sao để đếm
   const r = await ask({
@@ -2708,12 +2793,79 @@ $('#xlsIn').onchange = async e => {
       (skipped.length ? `\nSkipped sheets: ${skipped.join(', ')}` : ''),
     buttons: [{ label: 'Cancel', value: null }, { label: 'Import', value: 'ok', cls: 'primary' }]
   });
-  if (!r.btn) return;
+  if (!r.btn) return false;
   const res = applyXlsx(db.topics, plan);
-  if (!save()) return;
+  if (!save()) return false;
   toast(`Imported ${res.added} words`);
   location.hash = 'v';
-};
+  return true;
+}
+
+// ===== Import from GitHub =====
+// Upload file .xlsx vào thư mục myexcel/ của kho GitHub → trên iPhone chọn file trong danh sách để import.
+// Mật khẩu chỉ để hạn chế người dùng bình thường (code và file trên GitHub vẫn công khai).
+// Trong code chỉ lưu mã băm SHA-256 của mật khẩu, không lưu mật khẩu.
+const GH_REPO = 'thaixaleme/tuvung';
+const GH_DIR = 'myexcel';
+const GH_PASS_HASH = '92c8bcd1a7cac865d5b0da3101c830000fe3259a41439987d54d1b0519eefc5e';
+async function sha256(s) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+
+async function openGitHub() {
+  if (opt.ghOk !== GH_PASS_HASH) {
+    const r = await ask({
+      title: 'Import from GitHub',
+      fields: [{ name: 'pw', label: 'Password', password: 1, required: 1 }],
+      buttons: [{ label: 'Cancel', value: null }, { label: 'OK', value: 'ok', check: 1, cls: 'primary' }]
+    });
+    if (!r.btn) return;
+    if (await sha256(r.v.pw) !== GH_PASS_HASH) { alert('Wrong password.'); return; }
+    opt.ghOk = GH_PASS_HASH; // nhập đúng 1 lần thì máy này không hỏi lại (đổi mật khẩu trong code thì hỏi lại)
+    saveOpt();
+  }
+  location.hash = 'gh';
+}
+
+// Danh sách file .xlsx trong thư mục myexcel/ (lấy qua GitHub API, sắp xếp theo tên)
+function renderGitHub() {
+  st = null;
+  if (opt.ghOk !== GH_PASS_HASH) { location.hash = 'set'; return; }
+  setBar('Import from GitHub', 'set', [['↻', 'Reload', renderGitHub]]);
+  app.innerHTML = '<p class="muted">Loading…</p>';
+  fetch(`https://api.github.com/repos/${GH_REPO}/contents/${GH_DIR}`, { cache: 'no-store' })
+    .then(r => r.status === 404 ? [] : r.ok ? r.json() : Promise.reject(r.status)) // 404: chưa có thư mục myexcel/
+    .then(list => {
+      if (location.hash !== '#gh') return;
+      const files = list.filter(f => f.type === 'file' && /\.xlsx$/i.test(f.name)).sort((a, b) => a.name.localeCompare(b.name));
+      app.innerHTML = `<p class="muted">Excel files in the “${GH_DIR}” folder of the GitHub repository. Tap a file to import it.</p>
+        <ul class="list" id="ghl">${files.length ? files.map(f => {
+          const done = opt.ghDone[f.name];
+          const tag = !done ? '' : done === f.sha ? '<span class="ghtag done">✓ Imported</span>' : '<span class="ghtag upd">★ Updated</span>';
+          return `<li class="item" data-f="${esc(f.name)}" style="cursor:pointer">
+            <div class="grow"><b>📄 ${esc(f.name)}</b>${tag}<small>${Math.max(1, Math.round(f.size / 1024))} KB</small></div>
+            <span class="chev">›</span></li>`;
+        }).join('') : `<li class="empty">No .xlsx files in the “${GH_DIR}” folder yet.</li>`}</ul>`;
+      $('#ghl').onclick = e => {
+        const it = e.target.closest('[data-f]');
+        if (it) importGitHub(files.find(f => f.name === it.dataset.f));
+      };
+    })
+    .catch(() => {
+      if (location.hash === '#gh') app.innerHTML = '<p class="empty">Could not load the file list. Check the internet connection and tap ↻.</p>';
+    });
+}
+
+async function importGitHub(f) {
+  let sheets;
+  try {
+    const r = await fetch(f.download_url, { cache: 'no-store' });
+    if (!r.ok) throw r.status;
+    sheets = await readXlsx(await r.blob());
+  } catch (err) { alert('Could not download or read this file.'); return; }
+  if (await importSheets(sheets)) { opt.ghDone[f.name] = f.sha; saveOpt(); } // nhớ bản đã import (sha đổi = có bản mới)
+}
 
 // ===== Sao lưu / khôi phục =====
 async function exportData() {

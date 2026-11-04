@@ -19,6 +19,7 @@ self.addEventListener('activate', e => {
 // Có mạng: lấy bản mới nhất (và cập nhật bộ nhớ). Mất mạng / mạng chậm quá 3 giây: dùng bản đã lưu.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).origin !== location.origin) return; // GitHub API / file Excel: luôn lấy từ mạng, không lưu
   const fromCache = () => caches.match(e.request, { ignoreSearch: true })
     .then(r => r || caches.match('./index.html'));
   const fromNet = fetch(e.request, { cache: 'no-cache' }).then(r => {
