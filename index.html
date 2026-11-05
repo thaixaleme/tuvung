@@ -300,6 +300,61 @@ mark.dy{background:none;color:var(--ok);text-decoration:underline}
 .muted{color:var(--muted);font-size:14px;margin:4px 0}
 #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;z-index:20}
 #toast.show{opacity:1}
+/* Settings: các nút chọn mẫu màu (xuống dòng khi nhiều) */
+.thgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:10px 0}
+
+/* ===== Mẫu màu lấp lánh (html.fancy): nền chuyển màu + thẻ kính mờ + hiệu ứng (#fx) =====
+   Không đổi theo chế độ sáng / tối của máy: Sakura, Crystal, Gold luôn sáng; Galaxy luôn tối.
+   --glass: nền trong suốt của các thẻ (thấy nền phía sau); --card: nền đặc (hộp thoại, ô nhập) */
+html[data-theme=sakura]{color-scheme:light;--bg:#fde8ef;--card:#fff;--glass:rgba(255,255,255,.72);--text:#3b1f2b;--muted:#9a6b7c;--line:#f6d3df;--pri:#d94f84;--danger:#dc2626;--ok:#16a34a;--chip:#fde2ec;--hd-bg:rgba(255,240,245,.65);--hd-text:#9d2f5a;--hit:#fff1d6;--hit-cur:#ffe08a;
+  --bgimg:linear-gradient(170deg,#fff5f8 0%,#ffe3ec 55%,#fbd3e0 100%)}
+html[data-theme=sakura],html[data-theme=sakura] .tc0{--tc:#e0608e;--tc-d:#b03a68;--tc-bg:#fde2ec;--tc-e:#b03a68}
+html[data-theme=sakura] .tc1{--tc:#9b6bd6;--tc-d:#6b3fa0;--tc-bg:#f1e6fb;--tc-e:#6b3fa0}
+html[data-theme=sakura] .tc2{--tc:#3aa58a;--tc-d:#1f7a63;--tc-bg:#dcf3ec;--tc-e:#1f7a63}
+html[data-theme=crystal]{color-scheme:light;--bg:#eaf0ff;--card:#fff;--glass:rgba(255,255,255,.58);--text:#1e2340;--muted:#6b7394;--line:#dfe5f7;--pri:#6366f1;--danger:#dc2626;--ok:#16a34a;--chip:#e0e7ff;--hd-bg:rgba(255,255,255,.45);--hd-text:#3b3f9e;--hit:#fff6d6;--hit-cur:#ffe08a;
+  --bgimg:linear-gradient(125deg,#dff1ff,#efe4ff 30%,#dcfaf1 55%,#fff1e0 80%,#e4e9ff)}
+html[data-theme=crystal],html[data-theme=crystal] .tc0{--tc:#6366f1;--tc-d:#4338ca;--tc-bg:#e0e7ff;--tc-e:#4338ca}
+html[data-theme=crystal] .tc1{--tc:#0ea5b7;--tc-d:#0e7490;--tc-bg:#cffafe;--tc-e:#0e7490}
+html[data-theme=crystal] .tc2{--tc:#c056d6;--tc-d:#86198f;--tc-bg:#fae8ff;--tc-e:#86198f}
+html[data-theme=galaxy]{color-scheme:dark;--bg:#0b0b1f;--card:#1c1a3d;--glass:rgba(40,36,90,.5);--text:#e8e6ff;--muted:#a5a2d0;--line:#2e2a5c;--pri:#8b5cf6;--danger:#f87171;--ok:#22c55e;--chip:#2e2a66;--hd-bg:rgba(20,18,50,.55);--hd-text:#d9d4ff;--hit:#3a3218;--hit-cur:#6b5410;
+  --bgimg:radial-gradient(ellipse at 20% 12%,#3b2a7a 0%,transparent 55%),radial-gradient(ellipse at 85% 75%,#173a6b 0%,transparent 55%),#0b0b1f}
+html[data-theme=galaxy],html[data-theme=galaxy] .tc0{--tc:#8b5cf6;--tc-d:#c4b5fd;--tc-bg:#2e2766;--tc-e:#c4b5fd}
+html[data-theme=galaxy] .tc1{--tc:#3b82f6;--tc-d:#93c5fd;--tc-bg:#1e3a6b;--tc-e:#93c5fd}
+html[data-theme=galaxy] .tc2{--tc:#ec4899;--tc-d:#f9a8d4;--tc-bg:#5b1f45;--tc-e:#f9a8d4}
+html[data-theme=gold]{color-scheme:light;--bg:#fdf3dc;--card:#fffdf7;--glass:rgba(255,255,255,.7);--text:#3a2a10;--muted:#94784a;--line:#f0dcae;--pri:#c8901a;--danger:#dc2626;--ok:#16a34a;--chip:#fbefd0;--hd-bg:rgba(255,248,232,.65);--hd-text:#8a5a00;--hit:#fff1c2;--hit-cur:#fbd56b;
+  --bgimg:linear-gradient(165deg,#fffaf0 0%,#fdf0d5 60%,#f8e2b4 100%)}
+html[data-theme=gold],html[data-theme=gold] .tc0{--tc:#c8901a;--tc-d:#9a6400;--tc-bg:#fbefd0;--tc-e:#9a6400}
+html[data-theme=gold] .tc1{--tc:#c2622d;--tc-d:#8c3d12;--tc-bg:#fbe3d3;--tc-e:#8c3d12}
+html[data-theme=gold] .tc2{--tc:#6f9a2f;--tc-d:#4a6b17;--tc-bg:#ecf3d8;--tc-e:#4a6b17}
+/* Nền chuyển màu cố định phía sau (lớp riêng vì iPhone không hỗ trợ background-attachment:fixed) */
+html.fancy body{background:transparent}
+html.fancy{background:var(--bg)}
+html.fancy body::before{content:'';position:fixed;inset:0;z-index:-1;background:var(--bgimg)}
+html.fx-on[data-theme=crystal] body::before{background-size:300% 300%;animation:shimmer 14s ease-in-out infinite}
+@keyframes shimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+/* Thẻ kính mờ. Làm mờ (blur) chỉ ở các khung lớn; thẻ từ vựng chỉ trong suốt (danh sách dài, tránh nặng máy) */
+html.fancy header{background:var(--hd-bg);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom-color:transparent}
+html.fancy :is(.tile,.card,.sect,.tophead,.list,.plist,.irtable){background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+html.fancy :is(#words.wl>li.item,.chip,.btn:not(.primary),.cerow,.ln,.seg button.on,.tform input){background:var(--glass)}
+html.fancy .card.isback{background:var(--tc-bg)}
+html.fancy .banner.framed{border-color:var(--glass)}
+html.fancy #words>li.divider{background:transparent}
+html.fancy .irrow:nth-child(odd){background:rgba(255,255,255,.25)}
+html[data-theme=galaxy] .irrow:nth-child(odd){background:rgba(255,255,255,.04)}
+html[data-theme=galaxy] .btn.primary{box-shadow:0 0 16px rgba(139,92,246,.55)}
+/* Vệt sáng lướt qua thẻ (Crystal, Gold) */
+html.fx-on:is([data-theme=crystal],[data-theme=gold]) :is(.tile,.card,.btn.primary){position:relative;overflow:hidden}
+html.fx-on:is([data-theme=crystal],[data-theme=gold]) :is(.tile,.card,.btn.primary)::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.7),rgba(255,255,255,0));transform:rotate(20deg);animation:glint 7s ease-in-out infinite;pointer-events:none}
+html.fx-on .tile:nth-child(2)::after{animation-delay:.25s}
+html.fx-on .tile:nth-child(3)::after{animation-delay:.5s}
+@keyframes glint{0%,70%{left:-60%}90%,100%{left:130%}}
+/* Lớp hiệu ứng: cánh hoa rơi / hạt lấp lánh / sao. Nằm trên cùng nhưng không nhận thao tác chạm */
+#fx{position:fixed;inset:0;z-index:15;pointer-events:none;overflow:hidden}
+#fx .petal{position:absolute;top:-20px;border-radius:12px 0 12px 0;background:linear-gradient(135deg,#ffd1e0,#f7a1bf);opacity:.8;animation:fall linear infinite}
+@keyframes fall{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(25px,26vh) rotate(90deg)}50%{transform:translate(-10px,52vh) rotate(180deg)}75%{transform:translate(20px,78vh) rotate(270deg)}100%{transform:translate(0,106vh) rotate(360deg)}}
+#fx .spark{position:absolute;width:var(--s);height:var(--s);background:var(--c);clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);filter:drop-shadow(0 0 3px var(--c));animation:twinkle var(--d) ease-in-out infinite;opacity:0}
+#fx .dotstar{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;animation:twinkle var(--d) ease-in-out infinite;opacity:0}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
 </style>
 </head>
 <body>
@@ -335,7 +390,11 @@ const IMG_SIZE = 200;     // ảnh chủ đề: cắt vuông, thu nhỏ còn 200
 const BANNER_SIZE = 900;  // ảnh màn hình tổng: cạnh dài tối đa 900px
 const BANNER_MAX = 15;    // số ảnh màn hình tổng tối đa (dữ liệu lưu trong máy chỉ được khoảng 5MB)
 const SLIDE_MS = 3000;    // thời gian chuyển ảnh
-const THEMES = [['ocean', 'Ocean'], ['sunset', 'Sunset'], ['lavender', 'Lavender']];
+const THEMES = [['ocean', 'Ocean'], ['sunset', 'Sunset'], ['lavender', 'Lavender'],
+  ['sakura', '🌸 Sakura'], ['crystal', '💎 Crystal'], ['galaxy', '🌌 Galaxy'], ['gold', '✨ Gold']];
+// Mẫu màu lấp lánh → loại hiệu ứng: petal cánh hoa rơi | spark hạt lấp lánh (kèm màu) | star sao (galaxy)
+const THEME_FX = { sakura: ['petal'], crystal: ['spark', '#ffffff', '#c7d2fe', '#a5f3fc'],
+  galaxy: ['star', '#ffffff', '#c4b5fd', '#93c5fd'], gold: ['spark', '#f5c542', '#ffe08a', '#fff6d0'] };
 // Người nói trong hội thoại: 'T' = người 1 (giọng nam), 'R' = người 2 (giọng nữ).
 // Tên hiển thị đặt trong Settings → Speakers (mặc định TH / TR); dữ liệu chỉ lưu 'T' / 'R'.
 const SPEAKER_DEFAULT = { T: 'TH', R: 'TR' };
@@ -533,10 +592,39 @@ const app = $('#app');
 let db = load();
 let opt = Object.assign({ dir: 'en', shuffle: false, onlyNew: false, stEx: true, lsRate: 0.9, cpRate: 0.9, cpMode: 'cont', cpShowVi: true, exvi: true,
   theme: 'ocean', voiceV: '', voiceT: '', voiceR: '', nameT: 'TH', nameR: 'TR',
-  ghOk: '', ghDone: {} }, readJSON(OPT_KEY)); // ghOk: đã nhập đúng mật khẩu Import from GitHub; ghDone: {tên file: sha đã import}
+  ghOk: '', ghDone: {}, fx: true }, readJSON(OPT_KEY)); // fx: bật hiệu ứng của mẫu màu lấp lánh // ghOk: đã nhập đúng mật khẩu Import from GitHub; ghDone: {tên file: sha đã import}
 if (opt.nameT === 'THAI') opt.nameT = 'TH';   // tên mặc định cũ → tên mặc định mới
 if (opt.nameR === 'TRANG') opt.nameR = 'TR';
-document.documentElement.dataset.theme = opt.theme;
+applyTheme();
+
+// Áp dụng mẫu màu. Mẫu lấp lánh (THEME_FX): thêm class fancy (nền chuyển màu, thẻ kính mờ)
+// và khi bật Effects thì vẽ hiệu ứng vào lớp #fx (vị trí, tốc độ ngẫu nhiên).
+function applyTheme() {
+  const html = document.documentElement, f = THEME_FX[opt.theme], on = !!(f && opt.fx);
+  html.dataset.theme = opt.theme;
+  html.classList.toggle('fancy', !!f);
+  html.classList.toggle('fx-on', on);
+  let fx = document.getElementById('fx');
+  if (!fx) {
+    fx = document.createElement('div');
+    fx.id = 'fx';
+    fx.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(fx);
+  }
+  if (!on) { fx.innerHTML = ''; return; }
+  const rnd = (a, b) => (a + Math.random() * (b - a)).toFixed(2);
+  let h = '';
+  if (f[0] === 'petal') {
+    for (let i = 0; i < 10; i++)
+      h += `<span class="petal" style="left:${rnd(0, 100)}%;width:${rnd(10, 15)}px;height:${rnd(8, 12)}px;animation-duration:${rnd(10, 18)}s;animation-delay:-${rnd(0, 18)}s"></span>`;
+  } else {
+    for (let i = 0; i < 12; i++)
+      h += `<span class="spark" style="left:${rnd(0, 96)}%;top:${rnd(0, 97)}%;--s:${rnd(7, 14)}px;--c:${f[1 + i % 3]};--d:${rnd(2.2, 4.5)}s;animation-delay:-${rnd(0, 4)}s"></span>`;
+    if (f[0] === 'star') for (let i = 0; i < 40; i++)
+      h += `<span class="dotstar" style="left:${rnd(0, 100)}%;top:${rnd(0, 100)}%;--d:${rnd(2, 6)}s;animation-delay:-${rnd(0, 6)}s"></span>`;
+  }
+  fx.innerHTML = h;
+}
 document.body.classList.toggle('hide-exvi', !opt.exvi);
 let st = null;          // trạng thái phiên học flashcard
 let pl = null;          // trình phát đang mở (Listen từ vựng hoặc Conversation)
@@ -1417,7 +1505,9 @@ function renderSettings() {
     ['T', spk('T'), 'voiceT', 'Hi, nice to meet you.'], ['R', spk('R'), 'voiceR', 'Nice to meet you too.']];
   app.innerHTML = `
     <section class="sect"><h3>Color theme</h3>
-      <div class="row">${THEMES.map(([v, l]) => `<button class="btn grow ${v === opt.theme ? 'primary' : ''}" data-th="${v}">${l}</button>`).join('')}</div>
+      <div class="thgrid">${THEMES.map(([v, l]) => `<button class="btn ${v === opt.theme ? 'primary' : ''}" data-th="${v}">${l}</button>`).join('')}</div>
+      ${THEME_FX[opt.theme] ? `<div class="row"><button class="btn grow ${opt.fx ? 'primary' : ''}" id="fxBtn">${opt.fx ? '✨ Effects: On' : 'Effects: Off'}</button></div>
+      <p class="muted">Turn effects off to save battery (background and glass cards stay).</p>` : ''}
     </section>
     <section class="sect"><h3>Home images (${db.banners.length} / ${BANNER_MAX})</h3>
       <p class="muted">Shown as a slideshow on the home screen. ◀ ▶ change the order, ✕ removes an image.</p>
@@ -1466,9 +1556,11 @@ function renderSettings() {
   app.querySelectorAll('[data-th]').forEach(b => b.onclick = () => {
     opt.theme = b.dataset.th;
     saveOpt();
-    document.documentElement.dataset.theme = opt.theme;
+    applyTheme();
     renderSettings();
   });
+  const fxBtn = $('#fxBtn');
+  if (fxBtn) fxBtn.onclick = () => { opt.fx = !opt.fx; saveOpt(); applyTheme(); renderSettings(); };
   $('#bAdd').onclick = () => $('#bannerIn').click();
   const thumbs = $('#thumbs');
   if (thumbs) thumbs.onclick = e => {
