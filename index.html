@@ -160,18 +160,18 @@ body.hide-exvi .exvi{display:none!important}
 main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100vh - var(--hh,57px) - env(safe-area-inset-bottom));height:calc(100dvh - var(--hh,57px) - env(safe-area-inset-bottom))}
 .tlist{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:0}
 .fill .block{margin:12px 0 0}
-/* Màn hình tổng */
+/* Màn hình tổng: ô chức năng và khung ảnh cùng 1 kiểu thẻ trắng (bo góc 18px, viền mảnh, bóng nhẹ) */
 .tiles{display:grid;gap:12px;margin-bottom:14px}
-.tile{display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;background:var(--tc-bg);border:1px solid var(--tc);color:var(--tc-d);text-decoration:none}
-.tile .ic{width:52px;height:52px;border-radius:14px;background:var(--card);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none}
+.tile{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.06);color:var(--tc-d);text-decoration:none}
+.tile .ic{width:52px;height:52px;border-radius:14px;background:var(--tc-bg);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none}
 .tile b{display:block;font-size:20px}
-.tile small{font-size:14px}
+.tile small{font-size:14px;color:var(--muted)}
 .tile .chev{color:var(--tc-d)}
 .banner{flex:1 1 0;min-height:120px;position:relative;border-radius:14px;overflow:hidden;background:var(--card);border:1px solid var(--line)}
 .banner img{width:100%;height:100%;object-fit:cover;display:block}
 .banner .ph{position:absolute;inset:0;width:100%;border:2px dashed var(--line);border-radius:14px;background:none;color:var(--muted);font-size:15px}
-/* Khung kiểu A: bo góc lớn, viền theo màu mẫu, bóng đổ nhẹ. Trình chiếu lật trang như sách + phóng to chậm */
-.banner.framed{border:3px solid var(--pri);border-radius:22px;box-shadow:0 10px 26px rgba(0,0,0,.16);perspective:1400px}
+/* Khung ảnh: cùng kiểu thẻ trắng với ô chức năng (viền trắng 6px như khung ảnh, viền mảnh, bóng nhẹ). Trình chiếu lật trang như sách + phóng to chậm */
+.banner.framed{border:6px solid var(--card);border-radius:18px;box-shadow:0 0 0 1px var(--line),0 2px 10px rgba(0,0,0,.06);perspective:1400px}
 .pg{position:absolute;inset:0;overflow:hidden;background:var(--card);transform-origin:left center;-webkit-backface-visibility:hidden;backface-visibility:hidden}
 .pg::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to left,rgba(0,0,0,.35),rgba(0,0,0,0) 60%);opacity:0;transition:opacity .9s}
 .pg.turn{transition:transform .9s cubic-bezier(.45,.05,.35,1)}
@@ -181,19 +181,6 @@ main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100
 .dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px;z-index:5}
 .dot{width:8px;height:8px;padding:0;border:0;border-radius:4px;background:rgba(255,255,255,.6);box-shadow:0 0 3px rgba(0,0,0,.4);transition:width .3s}
 .dot.on{width:20px;background:#fff}
-/* Màn hình tổng có ảnh (body.hub): ảnh trình chiếu tràn cả màn hình làm nền,
-   thanh tiêu đề và 3 ô dạng kính mờ nổi lên trên (ô nằm sát phía dưới) */
-body.hub header{background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom-color:transparent}
-body.hub main.fill{justify-content:flex-end;pointer-events:none}
-body.hub .tiles{position:relative;z-index:1;margin:0;pointer-events:auto}
-body.hub #slides{position:fixed;inset:0;z-index:0;border:0;border-radius:0;box-shadow:none;pointer-events:auto}
-body.hub #slides::after{content:'';position:absolute;left:0;right:0;bottom:0;height:45%;background:linear-gradient(to top,rgba(0,0,0,.28),rgba(0,0,0,0));z-index:4;pointer-events:none}
-body.hub .dots{top:calc(var(--hh,57px) + 12px);bottom:auto}
-body.hub .tile{background:rgba(255,255,255,.78);-webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);border:1px solid rgba(255,255,255,.6);box-shadow:0 6px 20px rgba(0,0,0,.15)}
-body.hub .tile .ic{background:var(--tc-bg)}
-@media (prefers-color-scheme:dark){
-body.hub header{background:rgba(15,17,21,.5)}
-body.hub .tile{background:rgba(26,29,36,.72);border-color:rgba(255,255,255,.12)}}
 /* Settings: danh sách ảnh màn hình tổng */
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
 .tb{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:4/3;border:1px solid var(--line)}
@@ -1294,7 +1281,6 @@ function render() {
   if (page !== 'ce') ce = null;                                            // rời màn hình nhập thì bỏ bản nháp
   sorting = null;                                                          // chuyển màn hình thì thoát chế độ sắp xếp
   clearInterval(slideTimer);                                               // dừng trình chiếu ảnh
-  document.body.classList.remove('hub');                                   // ảnh nền chỉ dùng ở màn hình tổng
   app.className = '';
   if (page === 'v') renderVocab();
   else if (page === 't' && t) renderTopic(t, sub);
@@ -1331,7 +1317,7 @@ function renderHub() {
     ${db.banners.length ? slidesHtml(db.banners) : '<div class="banner"><button class="ph" id="bPick">＋ Add image</button></div>'}`;
   const pick = $('#bPick');
   if (pick) pick.onclick = () => $('#bannerIn').click();
-  if (db.banners.length) { document.body.classList.add('hub'); startSlides(db.banners.length); } // có ảnh: ảnh làm nền cả màn hình
+  if (db.banners.length) startSlides(db.banners.length);
 }
 
 // ===== Trình chiếu ảnh màn hình tổng (lật trang như sách) =====
