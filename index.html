@@ -312,7 +312,8 @@ html[data-theme=sakura],html[data-theme=sakura] .tc0{--tc:#e0608e;--tc-d:#b03a68
 html[data-theme=sakura] .tc1{--tc:#9b6bd6;--tc-d:#6b3fa0;--tc-bg:#f1e6fb;--tc-e:#6b3fa0}
 html[data-theme=sakura] .tc2{--tc:#3aa58a;--tc-d:#1f7a63;--tc-bg:#dcf3ec;--tc-e:#1f7a63}
 html[data-theme=crystal]{color-scheme:light;--bg:#eaf0ff;--card:#fff;--glass:rgba(255,255,255,.58);--text:#1e2340;--muted:#6b7394;--line:#dfe5f7;--pri:#6366f1;--danger:#dc2626;--ok:#16a34a;--chip:#e0e7ff;--hd-bg:rgba(255,255,255,.45);--hd-text:#3b3f9e;--hit:#fff6d6;--hit-cur:#ffe08a;
-  --bgimg:linear-gradient(125deg,#dff1ff,#efe4ff 30%,#dcfaf1 55%,#fff1e0 80%,#e4e9ff)}
+  --facet:linear-gradient(115deg,rgba(255,255,255,.75) 0%,rgba(255,255,255,.25) 30%,rgba(255,255,255,0) 30.5%,rgba(255,255,255,0) 64%,rgba(255,255,255,.3) 64.5%,rgba(255,255,255,.05) 78%,rgba(255,255,255,0) 78.5%);
+  --bgimg:linear-gradient(62deg,transparent 52%,rgba(255,255,255,.45) 52%,rgba(255,255,255,.45) 64%,transparent 64%),linear-gradient(-28deg,transparent 30%,rgba(199,210,254,.45) 30%,rgba(199,210,254,.45) 41%,transparent 41%),linear-gradient(148deg,transparent 68%,rgba(165,243,252,.4) 68%,rgba(165,243,252,.4) 79%,transparent 79%),linear-gradient(20deg,transparent 12%,rgba(251,207,232,.35) 12%,rgba(251,207,232,.35) 20%,transparent 20%),linear-gradient(125deg,#dff1ff,#efe4ff 30%,#dcfaf1 55%,#fff1e0 80%,#e4e9ff)}
 html[data-theme=crystal],html[data-theme=crystal] .tc0{--tc:#6366f1;--tc-d:#4338ca;--tc-bg:#e0e7ff;--tc-e:#4338ca}
 html[data-theme=crystal] .tc1{--tc:#0ea5b7;--tc-d:#0e7490;--tc-bg:#cffafe;--tc-e:#0e7490}
 html[data-theme=crystal] .tc2{--tc:#c056d6;--tc-d:#86198f;--tc-bg:#fae8ff;--tc-e:#86198f}
@@ -322,16 +323,16 @@ html[data-theme=galaxy],html[data-theme=galaxy] .tc0{--tc:#8b5cf6;--tc-d:#c4b5fd
 html[data-theme=galaxy] .tc1{--tc:#3b82f6;--tc-d:#93c5fd;--tc-bg:#1e3a6b;--tc-e:#93c5fd}
 html[data-theme=galaxy] .tc2{--tc:#ec4899;--tc-d:#f9a8d4;--tc-bg:#5b1f45;--tc-e:#f9a8d4}
 html[data-theme=gold]{color-scheme:light;--bg:#fdf3dc;--card:#fffdf7;--glass:rgba(255,255,255,.7);--text:#3a2a10;--muted:#94784a;--line:#f0dcae;--pri:#c8901a;--danger:#dc2626;--ok:#16a34a;--chip:#fbefd0;--hd-bg:rgba(255,248,232,.65);--hd-text:#8a5a00;--hit:#fff1c2;--hit-cur:#fbd56b;
-  --bgimg:linear-gradient(165deg,#fffaf0 0%,#fdf0d5 60%,#f8e2b4 100%)}
-html[data-theme=gold],html[data-theme=gold] .tc0{--tc:#c8901a;--tc-d:#9a6400;--tc-bg:#fbefd0;--tc-e:#9a6400}
-html[data-theme=gold] .tc1{--tc:#c2622d;--tc-d:#8c3d12;--tc-bg:#fbe3d3;--tc-e:#8c3d12}
-html[data-theme=gold] .tc2{--tc:#6f9a2f;--tc-d:#4a6b17;--tc-bg:#ecf3d8;--tc-e:#4a6b17}
+  --gframe:linear-gradient(135deg,#fff4c4,#e2a92e 30%,#fff4c4 50%,#a8750f 75%,#f6d36b);
+  --bgimg:radial-gradient(circle,rgba(255,214,102,.9) 0,rgba(255,214,102,.9) 1px,transparent 1.6px) 0 0/31px 37px,radial-gradient(circle,#fff 0,#fff 1px,transparent 1.6px) 11px 17px/47px 43px,radial-gradient(circle,rgba(214,160,40,.55) 0,rgba(214,160,40,.55) .8px,transparent 1.4px) 23px 5px/59px 53px,linear-gradient(165deg,#fffaf0 0%,#fdf0d5 60%,#f8e2b4 100%)}
+/* --g1〜--g4: màu kim loại của khối vàng (sáng → đậm, --g4: cạnh dày). tc0 vàng / tc1 vàng hồng / tc2 vàng sâm panh */
+html[data-theme=gold],html[data-theme=gold] .tc0{--tc:#c8901a;--tc-d:#5a3a00;--tc-bg:#fbefd0;--tc-e:#9a6400;--g1:#fff4c4;--g2:#f6d36b;--g3:#e2a92e;--g4:#a8750f}
+html[data-theme=gold] .tc1{--tc:#c97a5a;--tc-d:#5a2410;--tc-bg:#fbe3d6;--tc-e:#8c3d20;--g1:#ffe9df;--g2:#f4bfa5;--g3:#dd8f6e;--g4:#a95a3c}
+html[data-theme=gold] .tc2{--tc:#b59b5a;--tc-d:#4a3d1c;--tc-bg:#f4ecd6;--tc-e:#6b5520;--g1:#fffcf2;--g2:#efe6cc;--g3:#d6c69c;--g4:#9c8a5c}
 /* Nền chuyển màu cố định phía sau (lớp riêng vì iPhone không hỗ trợ background-attachment:fixed) */
 html.fancy body{background:transparent}
 html.fancy{background:var(--bg)}
 html.fancy body::before{content:'';position:fixed;inset:0;z-index:-1;background:var(--bgimg)}
-html.fx-on[data-theme=crystal] body::before{background-size:300% 300%;animation:shimmer 14s ease-in-out infinite}
-@keyframes shimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 /* Thẻ kính mờ. Làm mờ (blur) chỉ ở các khung lớn; thẻ từ vựng chỉ trong suốt (danh sách dài, tránh nặng máy) */
 html.fancy header{background:var(--hd-bg);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom-color:transparent}
 html.fancy :is(.tile,.card,.sect,.tophead,.list,.plist,.irtable){background:var(--glass);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
@@ -342,19 +343,37 @@ html.fancy #words>li.divider{background:transparent}
 html.fancy .irrow:nth-child(odd){background:rgba(255,255,255,.25)}
 html[data-theme=galaxy] .irrow:nth-child(odd){background:rgba(255,255,255,.04)}
 html[data-theme=galaxy] .btn.primary{box-shadow:0 0 16px rgba(139,92,246,.55)}
-/* Vệt sáng lướt qua thẻ (Crystal, Gold) */
+/* Crystal: khối thủy tinh (mặt cắt phản chiếu --facet, cạnh trắng, cạnh dày xanh nhạt phía dưới) */
+html.fancy[data-theme=crystal] :is(.tile,.card,.sect,.tophead){background:var(--facet),var(--glass);box-shadow:inset 0 1px 0 #fff,inset 1px 0 0 rgba(255,255,255,.7),inset 0 -6px 12px rgba(99,102,241,.1),0 3px 0 rgba(165,180,252,.55),0 10px 24px rgba(80,90,180,.16)}
+html.fancy[data-theme=crystal] :is(.tile,.sect,.tophead){border:1px solid rgba(255,255,255,.95)}
+html.fancy[data-theme=crystal] .card.isback{background:var(--facet),var(--tc-bg)}
+html.fancy[data-theme=crystal] .tile .ic{background:linear-gradient(135deg,#fff 0%,var(--tc-bg) 45%,#fff 46%,var(--tc-bg) 100%);border:1px solid #fff;box-shadow:inset 0 -3px 6px rgba(99,102,241,.15),0 2px 6px rgba(80,90,180,.15)}
+html.fancy[data-theme=crystal] .btn.primary{background:var(--facet),linear-gradient(135deg,#a5b4fc,#6366f1 60%,#818cf8);border-color:#a5b4fc;box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 3px 0 #4f46e5,0 6px 14px rgba(99,102,241,.35)}
+/* Gold: khối vàng đặc (không làm mờ nền → nhẹ máy). Ô màn hình chính = thỏi vàng, biểu tượng = đồng xu, khung = viền vàng */
+html.fancy[data-theme=gold] header{background:linear-gradient(180deg,#fff8e4,#fbecc4);border-bottom:1px solid #e9cf8a;-webkit-backdrop-filter:none;backdrop-filter:none}
+html.fancy[data-theme=gold] .tile{background:linear-gradient(180deg,var(--g1) 0%,var(--g2) 40%,var(--g3) 58%,var(--g2) 100%);border:1px solid var(--g4);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(0,0,0,.12),0 4px 0 var(--g4),0 8px 16px rgba(120,80,10,.28);-webkit-backdrop-filter:none;backdrop-filter:none}
+html.fancy[data-theme=gold] .tile small{color:var(--tc-d);opacity:.75}
+html.fancy[data-theme=gold] .tile .ic{border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0,var(--g1) 25%,var(--g2) 60%,var(--g3) 100%);border:1px solid var(--g4);box-shadow:inset 0 -2px 3px rgba(0,0,0,.15),inset 0 2px 2px rgba(255,255,255,.8)}
+html.fancy[data-theme=gold] .btn.primary{background:linear-gradient(180deg,#fff4c4 0%,#f6d36b 40%,#e2a92e 58%,#f6d36b 100%);border-color:#a8750f;color:#4f3300;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 3px 0 #a8750f,0 6px 12px rgba(120,80,10,.25)}
+html.fancy[data-theme=gold] .card{background:linear-gradient(#fffdf6,#fff7e3) padding-box,var(--gframe) border-box;border:3px solid transparent;box-shadow:0 6px 18px rgba(150,100,20,.18);-webkit-backdrop-filter:none;backdrop-filter:none}
+html.fancy[data-theme=gold] .card.isback{background:linear-gradient(var(--tc-bg),var(--tc-bg)) padding-box,var(--gframe) border-box}
+html.fancy[data-theme=gold] :is(.sect,.tophead,.list,.plist,.irtable){background:linear-gradient(var(--card),var(--card)) padding-box,var(--gframe) border-box;border:1.5px solid transparent;-webkit-backdrop-filter:none;backdrop-filter:none}
+/* Vệt sáng lướt qua thẻ (Crystal, Gold). Chỉ dùng transform (GPU xử lý, không vẽ lại) để đỡ tốn pin */
 html.fx-on:is([data-theme=crystal],[data-theme=gold]) :is(.tile,.card,.btn.primary){position:relative;overflow:hidden}
-html.fx-on:is([data-theme=crystal],[data-theme=gold]) :is(.tile,.card,.btn.primary)::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.7),rgba(255,255,255,0));transform:rotate(20deg);animation:glint 7s ease-in-out infinite;pointer-events:none}
+html.fx-on:is([data-theme=crystal],[data-theme=gold]) :is(.tile,.card,.btn.primary)::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.7),rgba(255,255,255,0));transform:translateX(0) rotate(20deg);animation:glint 9s ease-in-out infinite;pointer-events:none}
+html.fx-on[data-theme=gold] :is(.tile,.card,.btn.primary)::after{background:linear-gradient(90deg,rgba(255,250,220,0),rgba(255,250,220,.85),rgba(255,250,220,0))}
 html.fx-on .tile:nth-child(2)::after{animation-delay:.25s}
 html.fx-on .tile:nth-child(3)::after{animation-delay:.5s}
-@keyframes glint{0%,70%{left:-60%}90%,100%{left:130%}}
+@keyframes glint{0%,70%{transform:translateX(0) rotate(20deg)}90%,100%{transform:translateX(480%) rotate(20deg)}}
 /* Lớp hiệu ứng: cánh hoa rơi / hạt lấp lánh / sao. Nằm trên cùng nhưng không nhận thao tác chạm */
 #fx{position:fixed;inset:0;z-index:15;pointer-events:none;overflow:hidden}
 #fx .petal{position:absolute;top:-20px;border-radius:12px 0 12px 0;background:linear-gradient(135deg,#ffd1e0,#f7a1bf);opacity:.8;animation:fall linear infinite}
 @keyframes fall{0%{transform:translate(0,0) rotate(0)}25%{transform:translate(25px,26vh) rotate(90deg)}50%{transform:translate(-10px,52vh) rotate(180deg)}75%{transform:translate(20px,78vh) rotate(270deg)}100%{transform:translate(0,106vh) rotate(360deg)}}
-#fx .spark{position:absolute;width:var(--s);height:var(--s);background:var(--c);clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);filter:drop-shadow(0 0 3px var(--c));animation:twinkle var(--d) ease-in-out infinite;opacity:0}
-#fx .dotstar{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;animation:twinkle var(--d) ease-in-out infinite;opacity:0}
+#fx .spark{position:absolute;width:var(--s);height:var(--s);background:var(--c);clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);animation:twinkle var(--d) ease-in-out infinite;opacity:0}
 @keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}50%{opacity:1;transform:scale(1) rotate(45deg)}}
+/* Sao nhỏ (Galaxy): mỗi lớp .stars vẽ nhiều chấm bằng box-shadow, cả lớp mờ / sáng cùng lúc (ít lớp chuyển động → nhẹ máy) */
+#fx .stars{position:absolute;left:0;top:0;width:2px;height:2px;border-radius:50%;animation:tw2 var(--d) ease-in-out infinite alternate}
+@keyframes tw2{from{opacity:.2}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -618,10 +637,13 @@ function applyTheme() {
     for (let i = 0; i < 10; i++)
       h += `<span class="petal" style="left:${rnd(0, 100)}%;width:${rnd(10, 15)}px;height:${rnd(8, 12)}px;animation-duration:${rnd(10, 18)}s;animation-delay:-${rnd(0, 18)}s"></span>`;
   } else {
-    for (let i = 0; i < 12; i++)
+    for (let i = 0; i < 10; i++)
       h += `<span class="spark" style="left:${rnd(0, 96)}%;top:${rnd(0, 97)}%;--s:${rnd(7, 14)}px;--c:${f[1 + i % 3]};--d:${rnd(2.2, 4.5)}s;animation-delay:-${rnd(0, 4)}s"></span>`;
-    if (f[0] === 'star') for (let i = 0; i < 40; i++)
-      h += `<span class="dotstar" style="left:${rnd(0, 100)}%;top:${rnd(0, 100)}%;--d:${rnd(2, 6)}s;animation-delay:-${rnd(0, 6)}s"></span>`;
+    if (f[0] === 'star') for (let g = 0; g < 3; g++) {
+      const sh = [];
+      for (let i = 0; i < 14; i++) sh.push(`${rnd(0, 100)}vw ${rnd(0, 100)}vh 0 ${i % 4 ? 0 : 0.5}px #fff`);
+      h += `<span class="stars" style="box-shadow:${sh.join(',')};--d:${3 + g * 1.5}s;animation-delay:-${g}s"></span>`;
+    }
   }
   fx.innerHTML = h;
 }
