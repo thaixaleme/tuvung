@@ -181,6 +181,19 @@ main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100
 .dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px;z-index:5}
 .dot{width:8px;height:8px;padding:0;border:0;border-radius:4px;background:rgba(255,255,255,.6);box-shadow:0 0 3px rgba(0,0,0,.4);transition:width .3s}
 .dot.on{width:20px;background:#fff}
+/* Màn hình tổng có ảnh (body.hub): ảnh trình chiếu tràn cả màn hình làm nền,
+   thanh tiêu đề và 3 ô dạng kính mờ nổi lên trên (ô nằm sát phía dưới) */
+body.hub header{background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom-color:transparent}
+body.hub main.fill{justify-content:flex-end;pointer-events:none}
+body.hub .tiles{position:relative;z-index:1;margin:0;pointer-events:auto}
+body.hub #slides{position:fixed;inset:0;z-index:0;border:0;border-radius:0;box-shadow:none;pointer-events:auto}
+body.hub #slides::after{content:'';position:absolute;left:0;right:0;bottom:0;height:45%;background:linear-gradient(to top,rgba(0,0,0,.28),rgba(0,0,0,0));z-index:4;pointer-events:none}
+body.hub .dots{top:calc(var(--hh,57px) + 12px);bottom:auto}
+body.hub .tile{background:rgba(255,255,255,.78);-webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);border:1px solid rgba(255,255,255,.6);box-shadow:0 6px 20px rgba(0,0,0,.15)}
+body.hub .tile .ic{background:var(--tc-bg)}
+@media (prefers-color-scheme:dark){
+body.hub header{background:rgba(15,17,21,.5)}
+body.hub .tile{background:rgba(26,29,36,.72);border-color:rgba(255,255,255,.12)}}
 /* Settings: danh sách ảnh màn hình tổng */
 .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:10px;margin-top:8px}
 .tb{position:relative;border-radius:10px;overflow:hidden;aspect-ratio:4/3;border:1px solid var(--line)}
@@ -268,6 +281,33 @@ dialog h2{margin:0 0 6px;font-size:19px}
 .hint{color:var(--muted);font-size:14px;margin-top:14px}
 .row3{gap:8px}
 .row3 .btn{padding:11px 6px;font-size:15px;white-space:nowrap}
+/* Study: chọn chế độ học (thẻ / viết tay / gõ chữ) */
+.seg{display:flex;gap:4px;padding:4px;margin:0 0 10px;border-radius:14px;background:var(--line)}
+.seg button{flex:1;border:0;background:none;border-radius:10px;padding:9px 4px;font-size:15px;color:var(--text)}
+.seg button.on{background:var(--card);color:var(--tc-d);font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+/* Viết tay / gõ chữ: khung đề bài, khung viết (luôn nền trắng, mực đen), khung đáp án */
+.card.pask{min-height:130px;cursor:default;padding:18px}
+.sayb{width:72px;height:72px;border-radius:50%;border:0;background:var(--tc-bg);font-size:32px}
+.pad{position:relative;height:240px;margin:10px 0;border-radius:16px;background:#fff;border:2px dashed #cfd8e3;overflow:hidden}
+.pad::after{content:'';position:absolute;left:16px;right:16px;bottom:32%;border-bottom:1px solid #e8edf3;pointer-events:none}
+.pad canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.pad .padhint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#b8c0cc;font-size:18px;pointer-events:none}
+.pad.used .padhint{display:none}
+.pad .padclr{position:absolute;top:8px;right:8px;z-index:1;border:1px solid #e1e8f0;background:#fff;color:#6b7280;border-radius:999px;padding:5px 12px;font-size:14px}
+.pans{margin:10px 0;padding:16px;border-radius:16px;background:var(--tc-bg);text-align:center}
+.pans .mid{font-size:20px;font-weight:700;margin-top:4px}
+.pans .btn{margin-top:10px}
+.tform{display:flex;gap:8px;margin:10px 0}
+.tform input{flex:1;min-width:0;margin:0;font-size:22px;padding:12px 14px;border-radius:14px;border:2px solid var(--line);background:var(--card)}
+.tform input.ok{border-color:var(--ok)}
+.tform input.ng{border-color:var(--danger)}
+.pres{font-size:20px;font-weight:700;margin-bottom:6px}
+.pres.ok{color:var(--ok)}
+.pres.ng{color:var(--danger)}
+.pdiff{font-size:18px;margin:2px 0 8px}
+mark.dx{background:none;color:var(--danger);text-decoration:line-through}
+mark.dy{background:none;color:var(--ok);text-decoration:underline}
+.pwrong{text-align:left;margin:14px 0}
 .done{text-align:center;padding:40px 10px}
 .done .big{margin-bottom:10px}
 .muted{color:var(--muted);font-size:14px;margin:4px 0}
@@ -1254,6 +1294,7 @@ function render() {
   if (page !== 'ce') ce = null;                                            // rời màn hình nhập thì bỏ bản nháp
   sorting = null;                                                          // chuyển màn hình thì thoát chế độ sắp xếp
   clearInterval(slideTimer);                                               // dừng trình chiếu ảnh
+  document.body.classList.remove('hub');                                   // ảnh nền chỉ dùng ở màn hình tổng
   app.className = '';
   if (page === 'v') renderVocab();
   else if (page === 't' && t) renderTopic(t, sub);
@@ -1290,7 +1331,7 @@ function renderHub() {
     ${db.banners.length ? slidesHtml(db.banners) : '<div class="banner"><button class="ph" id="bPick">＋ Add image</button></div>'}`;
   const pick = $('#bPick');
   if (pick) pick.onclick = () => $('#bannerIn').click();
-  if (db.banners.length) startSlides(db.banners.length);
+  if (db.banners.length) { document.body.classList.add('hub'); startSlides(db.banners.length); } // có ảnh: ảnh làm nền cả màn hình
 }
 
 // ===== Trình chiếu ảnh màn hình tổng (lật trang như sách) =====
@@ -1916,7 +1957,8 @@ function renderStudy(t, sub) {
   setBar('Study: ' + box.name, 't/' + t.id + (sub ? '/' + sub.id : ''), []);
   if (!st || st.tid !== box.id) buildDeck(words, box.id);
   st.ids = st.ids.filter(id => words.some(w => w.id === id)); // bỏ từ đã bị xóa
-  const opts = `
+  if (opt.stMode === 'write' || opt.stMode === 'type') { renderPractice(t, sub, box, words); return; }
+  const opts = `${stModeHtml()}
     <div class="opts">
       <button class="chip" data-o="dir">${opt.dir === 'en' ? 'EN → Meaning' : 'Meaning → EN'}</button>
       <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Shuffle</button>
@@ -1995,10 +2037,202 @@ function renderStudy(t, sub) {
     else if (k !== 'stEx') buildDeck(words, box.id); // ẩn / hiện câu ví dụ thì giữ nguyên thẻ đang học
     renderStudy(t, sub);
   });
+  bindStMode(t, sub);
   const again = $('#again');
   if (again) again.onclick = () => { buildDeck(words, box.id); renderStudy(t, sub); };
 
   function go(d) { st.i += d; st.flip = false; renderStudy(t, sub); }
+}
+
+// Nút chọn chế độ học ở đầu màn hình Study: 🃏 thẻ lật | ✍️ viết tay | ⌨️ gõ chữ
+function stModeHtml() {
+  const m = opt.stMode || 'card';
+  return `<div class="seg">${[['card', '🃏 Cards'], ['write', '✍️ Write'], ['type', '⌨️ Type']].map(([k, l]) =>
+    `<button class="${m === k ? 'on' : ''}" data-m="${k}">${l}</button>`).join('')}</div>`;
+}
+function bindStMode(t, sub) {
+  app.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+    if (opt.stMode === b.dataset.m) return;
+    opt.stMode = b.dataset.m;
+    saveOpt();
+    st.flip = false; st.res = {}; st.said = null; // đổi chế độ: giữ thứ tự thẻ, bỏ kết quả chấm
+    renderStudy(t, sub);
+  });
+}
+
+// ===== Học: viết tay (tự xem đáp án) / gõ chữ (app chấm, chạy offline) =====
+// opt.stMode: 'write' viết tay lên khung trắng, không chấm | 'type' gõ bàn phím, so với từ đáp án
+// opt.stAsk : 'say' nghe từ rồi viết | 'vi' nhìn nghĩa tiếng Việt rồi viết
+// st.res: {id từ: true / false} kết quả lần kiểm tra đầu tiên của mỗi từ (chế độ gõ chữ)
+function renderPractice(t, sub, box, words) {
+  const typing = opt.stMode === 'type';
+  if (!st.res) st.res = {};
+  const opts = `${stModeHtml()}
+    <div class="opts">
+      <button class="chip" data-o="stAsk">${opt.stAsk === 'vi' ? '🇻🇳 Meaning → write' : '🔊 Listen → write'}</button>
+      <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Shuffle</button>
+      <button class="chip ${opt.onlyNew ? 'on' : ''}" data-o="onlyNew">Not learned only</button>
+    </div>`;
+  const n = st.ids.length;
+  const w = n && st.i < n ? words.find(x => x.id === st.ids[st.i]) : null;
+  let body;
+  if (!n) {
+    body = `<div class="done"><div class="big">🎉</div><p>${opt.onlyNew ? 'You have learned all the words in this topic!' : 'This topic has no words yet.'}</p></div>`;
+  } else if (!w && typing) {
+    // Hết lượt gõ chữ: điểm + danh sách từ sai để ôn lại
+    const ok = st.ids.filter(id => st.res[id]).length;
+    const bad = st.ids.filter(id => st.res[id] === false).map(id => words.find(x => x.id === id)).filter(Boolean);
+    body = `<div class="done"><div class="big">${ok === n ? '🎉' : '📝'} ${ok} / ${n}</div><p>correct</p>
+      ${bad.length ? `<ul class="list pwrong">${bad.map(x => `<li class="item"><div class="grow"><b>${esc(x.en)}</b>
+        ${x.ipa ? `<span class="ipa">${esc(x.ipa)}</span>` : ''}<div class="muted">${esc(x.vi)}</div></div></li>`).join('')}</ul>
+        <button class="btn primary" id="retry">Retry wrong words (${bad.length})</button> ` : ''}
+      <button class="btn ${bad.length ? '' : 'primary'}" id="again">Study again</button></div>`;
+  } else if (!w) {
+    body = `<div class="done"><div class="big">🎉 Done!</div><p>You have gone through all ${n} words.</p>
+      <button class="btn primary" id="again">Study again</button></div>`;
+  } else {
+    // Đề bài: nghe từ (nút loa to) hoặc nghĩa tiếng Việt. Không hiện chữ tiếng Anh.
+    const ask = opt.stAsk === 'vi'
+      ? `<div class="mid">${esc(w.vi)}</div>${w.type ? `<div>${typeTagHtml(w)}</div>` : ''}<div class="hint">Write the English word</div>`
+      : `<button class="sayb" id="sayQ" aria-label="Listen again">🔊</button>${w.type ? `<div style="margin-top:8px">${typeTagHtml(w)}</div>` : ''}<div class="hint">Listen, then write the word</div>`;
+    body = `
+      <p class="prog">${st.i + 1} / ${n}</p>
+      <div class="card pask">${ask}</div>
+      ${typing
+        ? `<form class="tform" id="tf"><input id="ti" placeholder="Type the word…" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="go">
+           <button class="btn primary">Check</button></form>`
+        : `<div class="pad" id="padBox"><canvas id="pad"></canvas><span class="padhint">✍️ Write here</span><button class="padclr" id="clr">✕ Clear</button></div>`}
+      <div id="ans" ${typing ? '' : 'hidden'}></div>
+      <div class="row row3">
+        <button class="btn grow" id="prev" ${st.i ? '' : 'disabled'}>◀ Prev</button>
+        ${typing ? '' : '<button class="btn grow" id="show">👁 Answer</button>'}
+        <button class="btn grow primary" id="next">Next ▶</button>
+      </div>`;
+  }
+  app.className = tcClass(t);
+  app.innerHTML = opts + body;
+  bindStMode(t, sub);
+  app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
+    const k = b.dataset.o;
+    if (k === 'stAsk') opt.stAsk = opt.stAsk === 'vi' ? 'say' : 'vi';
+    else { opt[k] = !opt[k]; buildDeck(words, box.id); }
+    saveOpt();
+    st.said = null;
+    renderPractice(t, sub, box, words);
+  });
+  const again = $('#again');
+  if (again) again.onclick = () => { buildDeck(words, box.id); renderPractice(t, sub, box, words); };
+  const retry = $('#retry');
+  if (retry) retry.onclick = () => {
+    st.ids = st.ids.filter(id => st.res[id] === false);
+    st.i = 0; st.res = {}; st.said = null;
+    renderPractice(t, sub, box, words);
+  };
+  if (!w) return;
+
+  const go = d => { st.i += d; st.said = null; renderPractice(t, sub, box, words); };
+  $('#prev').onclick = () => go(-1);
+  $('#next').onclick = () => go(1);
+  if (opt.stAsk !== 'vi') {
+    $('#sayQ').onclick = () => speak(w.en);
+    if (st.said !== w.id) { st.said = w.id; speak(w.en); } // tự đọc 1 lần khi sang từ mới
+  }
+  const ans = $('#ans');
+  // Khung đáp án: từ (chỗ sai tô màu), IPA, V2 / V3, nghĩa (khi đề là nghe), nút nghe và đánh dấu đã thuộc
+  const showAns = (head, enHtml) => {
+    ans.innerHTML = `<div class="pans">${head || ''}<div class="big">${enHtml || esc(w.en)}</div>
+      ${w.ipa ? `<div class="ipa">${esc(w.ipa)}</div>` : ''}${verbFormsHtml(w, 'div')}
+      ${opt.stAsk === 'vi' ? '' : `<div class="mid">${esc(w.vi)}</div>`}
+      <div><button class="btn small" id="sayA">🔊 Listen</button>
+      <button class="btn small ${w.learned ? 'primary' : ''}" id="learn">${w.learned ? '✓ Learned' : '○ Learned'}</button></div></div>`;
+    ans.hidden = false;
+    $('#sayA').onclick = () => speak(w.en);
+    $('#learn').onclick = e => {
+      w.learned = !w.learned; save();
+      e.target.classList.toggle('primary', w.learned);
+      e.target.textContent = w.learned ? '✓ Learned' : '○ Learned';
+    };
+  };
+
+  if (!typing) { // Viết tay: không chấm, bấm 👁 Answer để tự so
+    const clear = initPad($('#pad'));
+    $('#clr').onclick = clear;
+    $('#show').onclick = () => { if (ans.hidden) { showAns(); speak(w.en); } else ans.hidden = true; };
+    return;
+  }
+  // Gõ chữ: so với đáp án (không phân biệt hoa / thường, dấu cách thừa, dấu câu). Đúng rồi bấm Enter lần nữa để sang từ sau.
+  const ti = $('#ti');
+  let passed = null;
+  $('#tf').onsubmit = e => {
+    e.preventDefault();
+    const v = ti.value.trim();
+    if (!v) return;
+    if (passed === v) { go(1); return; }
+    const forms = answerForms(w.en);
+    const ok = forms.includes(normAns(v));
+    if (!(w.id in st.res)) st.res[w.id] = ok; // chỉ tính lần kiểm tra đầu tiên
+    ti.classList.toggle('ok', ok);
+    ti.classList.toggle('ng', !ok);
+    passed = ok ? v : null;
+    if (ok) showAns('<div class="pres ok">✓ Correct!</div>');
+    else {
+      const [a, b] = diffHtml(v, w.en);
+      showAns(`<div class="pres ng">✗ Not quite</div><div class="pdiff">You: ${a}</div>`, b);
+    }
+    speak(w.en);
+  };
+  ti.focus();
+}
+
+// So sánh chữ gõ với đáp án: chữ thường, ’ → ', bỏ dấu câu và dấu cách thừa
+function normAns(s) { return s.toLowerCase().replace(/[’‘]/g, "'").replace(/[.,!?;:]/g, '').replace(/\s+/g, ' ').trim(); }
+// Các cách viết được tính là đúng: nguyên văn, bỏ phần (…), và từng vế khi từ có dạng a/b (grey/gray)
+function answerForms(en) {
+  const f = [en, en.replace(/\([^)]*\)/g, ''), en.replace(/[()]/g, '')];
+  if (!/\s/.test(en) && en.includes('/')) f.push(...en.split('/'));
+  return f.map(normAns).filter(Boolean);
+}
+// Tô màu chỗ khác nhau: ký tự không thuộc dãy chung dài nhất (LCS) của 2 chuỗi
+// trả về [chữ đã gõ (chữ thừa / sai gạch đỏ), đáp án (chữ bị thiếu / sai gạch chân xanh)]
+function diffHtml(a, b) {
+  const m = a.length, n = b.length, eq = (i, j) => a[i].toLowerCase() === b[j].toLowerCase();
+  const L = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = m - 1; i >= 0; i--) for (let j = n - 1; j >= 0; j--) L[i][j] = eq(i, j) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const ka = new Array(m).fill(false), kb = new Array(n).fill(false);
+  for (let i = 0, j = 0; i < m && j < n;) {
+    if (eq(i, j)) { ka[i] = kb[j] = true; i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) i++;
+    else j++;
+  }
+  const paint = (s, k, c) => [...s].map((ch, i) => k[i] ? esc(ch) : `<mark class="${c}">${ch === ' ' ? '&nbsp;' : esc(ch)}</mark>`).join('');
+  return [paint(a, ka, 'dx'), paint(b, kb, 'dy')];
+}
+// Khung viết tay: vẽ theo ngón tay / bút (pointer events). Trả về hàm xoá khung.
+function initPad(cv) {
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  cv.width = r.width * dpr; cv.height = r.height * dpr;
+  const g = cv.getContext('2d');
+  g.scale(dpr, dpr);
+  g.lineWidth = 4; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = g.fillStyle = '#1a1d24';
+  const box = cv.parentNode, pt = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+  let last = null;
+  cv.onpointerdown = e => {
+    e.preventDefault();
+    cv.setPointerCapture(e.pointerId);
+    last = pt(e);
+    g.beginPath(); g.arc(last[0], last[1], 2, 0, 7); g.fill(); // chấm 1 điểm (dấu chấm của i, j)
+    box.classList.add('used');
+  };
+  cv.onpointermove = e => {
+    if (!last) return;
+    for (const ev of (e.getCoalescedEvents ? e.getCoalescedEvents() : [e])) { // lấy đủ các điểm để nét mượt
+      const p = pt(ev);
+      g.beginPath(); g.moveTo(last[0], last[1]); g.lineTo(p[0], p[1]); g.stroke();
+      last = p;
+    }
+  };
+  cv.onpointerup = cv.onpointercancel = () => { last = null; };
+  return () => { g.clearRect(0, 0, r.width, r.height); box.classList.remove('used'); };
 }
 
 // ===== Hội thoại: danh sách chủ đề =====
