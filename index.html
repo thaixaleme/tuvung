@@ -208,6 +208,15 @@ main.fill{display:flex;flex-direction:column;padding-bottom:12px;height:calc(100
 .icon.sm{min-width:34px;height:34px;font-size:17px;color:var(--muted)}
 .cerow textarea{margin-top:6px;resize:none;overflow:hidden;line-height:1.35}
 .addrow .btn{border-color:var(--tc);color:var(--tc-d)}
+/* Ngữ pháp: khung cấu trúc, cách dùng, câu ví dụ. Màn hình nhập dùng chung kiểu ô .cerow */
+.gstruct{white-space:pre-wrap;word-break:break-word;font-size:17px;font-weight:700;line-height:1.6;color:var(--tc-d);background:var(--tc-bg);border:2px solid var(--tc);border-radius:14px;padding:12px 14px;margin:0 0 12px}
+.gusage{white-space:pre-wrap;word-break:break-word;font-size:15px;line-height:1.5}
+.gex{display:flex;gap:10px;align-items:flex-start}
+.gex .exbtn{flex:none;width:36px;height:36px;border-radius:50%;border:0;background:var(--tc-bg);font-size:16px;padding:0}
+.gex .en{font-size:16px}
+.gex .exvi{font-size:14px;margin-top:2px}
+.cerow.gr textarea[data-f=vi]{font-size:15px}
+.tform.long input{font-size:17px}
 /* Trình phát (Listen từ vựng, Conversation) */
 .pl .plopts{margin:0 0 8px}
 .plist{flex:1 1 0;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--card);border:1px solid var(--line);border-radius:14px;margin-top:8px}
@@ -652,6 +661,8 @@ let st = null;          // trạng thái phiên học flashcard
 let pl = null;          // trình phát đang mở (Listen từ vựng hoặc Conversation)
 let editing = null;     // id chủ đề đang ở chế độ sửa (null = chế độ xem)
 let ce = null;          // bản nháp khi nhập / sửa bài hội thoại
+let ge = null;          // bản nháp khi nhập / sửa điểm ngữ pháp
+let gst = null;         // trạng thái luyện tập ngữ pháp (gõ câu)
 let sorting = null;     // danh sách chủ đề đang ở chế độ sắp xếp: 'v' (từ vựng) / 'c' (hội thoại)
 
 function readJSON(key) {
@@ -665,10 +676,11 @@ function load() {
     delete d.banner;
     if (!d.avatars) d.avatars = { T: '', R: '' };                      // ảnh đại diện THAI / TRANG
     if (!Array.isArray(d.notes)) d.notes = [];                         // Notes: từ / cụm từ được tô đỏ trong câu
+    if (!Array.isArray(d.gram)) d.gram = [];                           // Grammar: dữ liệu cũ chưa có phần ngữ pháp
     return d;
   }
   // Lần đầu mở: tạo chủ đề ví dụ (có thể xóa)
-  return { banners: [], avatars: { T: '', R: '' }, notes: [], conv: [sampleConv()], topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
+  return { banners: [], avatars: { T: '', R: '' }, notes: [], conv: [sampleConv()], gram: [], topics: [{ id: uid(), name: 'Family (example)', img: '', words: [
     { id: uid(), en: 'father', ipa: '/ˈfɑː.ðər/', vi: 'bố, cha', ex: 'My father is a teacher.', learned: false },
     { id: uid(), en: 'mother', ipa: '/ˈmʌð.ər/', vi: 'mẹ', ex: 'My mother cooks very well.', learned: false },
     { id: uid(), en: 'brother', ipa: '/ˈbrʌð.ər/', vi: 'anh trai, em trai', ex: 'I have one brother.', learned: false }
@@ -696,6 +708,8 @@ function topicById(id) { return db.topics.find(t => t.id === id); }
 function subById(t, id) { return (t.subs || []).find(s => s.id === id); }
 function allWords(t) { return t.words.concat(...(t.subs || []).map(s => s.words)); } // tất cả từ của chủ đề (kể cả chủ đề con)
 function convTopicById(id) { return db.conv.find(t => t.id === id); }
+// Ngữ pháp: db.gram = [{id, name, img, items: [{id, title, struct, usage, ex: [{en, vi}]}]}]
+function gramTopicById(id) { return db.gram.find(t => t.id === id); }
 function tcClass(t, list) { return 'tc' + (Math.max((list || db.topics).indexOf(t), 0) % 3); } // màu của chủ đề (luân phiên 3 màu)
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1386,9 +1400,13 @@ function render() {
   const t = id && topicById(id);
   const sub = t && id2 ? subById(t, id2) : null;
   const ct = id && convTopicById(id);
-  if (!((page === 't' && (id === editing || id2 === editing)) || ((page === 'ct' || page === 'ce') && id === editing))) editing = null; // rời chủ đề thì trở về chế độ xem
+  const gt = id && gramTopicById(id);
+  const gi = gt && id2 ? gt.items.find(x => x.id === id2) : null;
+  if (!((page === 't' && (id === editing || id2 === editing)) || (['ct', 'ce', 'gt', 'ge'].includes(page) && id === editing))) editing = null; // rời chủ đề thì trở về chế độ xem
   if (page !== 'l' && page !== 'cp' && pl) { plStop(); pl = null; }        // rời trình phát thì dừng đọc
   if (page !== 'ce') ce = null;                                            // rời màn hình nhập thì bỏ bản nháp
+  if (page !== 'ge') ge = null;
+  if (page !== 'gp') gst = null;
   sorting = null;                                                          // chuyển màn hình thì thoát chế độ sắp xếp
   clearInterval(slideTimer);                                               // dừng trình chiếu ảnh
   app.className = '';
@@ -1400,6 +1418,11 @@ function render() {
   else if (page === 'ct' && ct) renderConvTopic(ct);
   else if (page === 'ce' && ct && (id2 === 'new' || ct.items.some(c => c.id === id2))) renderConvEdit(ct, id2);
   else if (page === 'cp') renderConvPlay(ct ? (id2 && ct.items.some(c => c.id === id2) ? id + '/' + id2 : id) : '');
+  else if (page === 'g') renderGramHome();
+  else if (page === 'gt' && gt) renderGramTopic(gt);
+  else if (page === 'gd' && gi) renderGramDetail(gt, gi);
+  else if (page === 'ge' && gt && (id2 === 'new' || gi)) renderGramEdit(gt, id2);
+  else if (page === 'gp' && gi) renderGramPractice(gt, gi);
   else if (page === 'set') renderSettings();
   else if (page === 'n') renderNotes();
   else if (page === 'irr') renderIrregular();
@@ -1415,13 +1438,16 @@ function renderHub() {
   app.className = 'fill';
   const words = db.topics.reduce((s, t) => s + t.words.length, 0);
   const convs = db.conv.reduce((s, t) => s + t.items.length, 0);
+  const grams = db.gram.reduce((s, t) => s + t.items.length, 0);
   app.innerHTML = `
     <div class="tiles">
       <a class="tile tc0" href="#v"><span class="ic">📖</span>
         <div class="grow"><b>Vocabulary</b><small>${db.topics.length} topics · ${words} words</small></div><span class="chev">›</span></a>
+      <a class="tile tc1" href="#g"><span class="ic">📐</span>
+        <div class="grow"><b>Grammar</b><small>${db.gram.length} topics · ${grams} grammar points</small></div><span class="chev">›</span></a>
       <a class="tile tc2" href="#c"><span class="ic">💬</span>
         <div class="grow"><b>Conversation</b><small>${db.conv.length} topics · ${convs} conversations</small></div><span class="chev">›</span></a>
-      <a class="tile tc1" href="#irr"><span class="ic">🔤</span>
+      <a class="tile tc0" href="#irr"><span class="ic">🔤</span>
         <div class="grow"><b>Irregular verbs</b><small>${IRREG.length} verbs · V1 · V2 · V3</small></div><span class="chev">›</span></a>
     </div>
     ${db.banners.length ? slidesHtml(db.banners) : '<div class="banner"><button class="ph" id="bPick">＋ Add image</button></div>'}`;
@@ -1952,10 +1978,11 @@ async function editTopic(t) {
   render();
 }
 
-// list: db.topics hoặc db.conv, child: tên mảng con ('words' / 'items'), backHash: màn hình quay về
+// list: db.topics, db.conv hoặc db.gram, child: tên mảng con ('words' / 'items'), backHash: màn hình quay về
 function deleteTopic(t, list, child, backHash) {
   const n = child === 'words' ? allWords(t).length : t[child].length;
-  if (!confirm(`Delete topic "${t.name}" and its ${n} ${child === 'words' ? 'words' : 'conversations'}?`)) return;
+  const what = child === 'words' ? 'words' : list === db.gram ? 'grammar points' : 'conversations';
+  if (!confirm(`Delete topic "${t.name}" and its ${n} ${what}?`)) return;
   list.splice(list.indexOf(t), 1);
   save();
   location.hash = backHash;
@@ -2546,6 +2573,347 @@ function saveConvEdit(t, c) {
   save();
   ce = null;
   location.hash = 'ct/' + t.id;
+}
+
+// ===== Ngữ pháp: danh sách chủ đề =====
+// Giống màn hình Conversation: chủ đề → các điểm ngữ pháp → trang chi tiết (cấu trúc, cách dùng, câu ví dụ) → luyện gõ câu
+function renderGramHome() {
+  const so = sorting === 'g';
+  setBar('Grammar', '', so
+    ? [['Done', 'Finish reordering', () => { sorting = null; renderGramHome(); }, 'text']]
+    : [['↕', 'Reorder topics', () => { sorting = 'g'; renderGramHome(); }], ['＋', 'Add topic', addGramTopic]]);
+  app.className = 'fill';
+  app.innerHTML = `
+    ${so ? '<p class="muted">Use ↑ ↓ to change the order. Tap Done when finished.</p>' : ''}
+    <ul class="list tlist">${db.gram.length ? db.gram.map((t, i) => {
+      const inner = `${thumbHtml(t.img)}
+        <div class="grow"><b>${esc(t.name)}</b><small>${t.items.length} grammar points</small></div>`;
+      return so
+        ? `<li><div class="item topic ${tcClass(t, db.gram)}">${inner}${mvBtns(i, db.gram.length)}</div></li>`
+        : `<li><a class="item topic ${tcClass(t, db.gram)}" href="#gt/${t.id}">${inner}<span class="chev">›</span></a></li>`;
+    }).join('') : '<li class="empty">No topics yet. Tap “＋ Add topic” to start.</li>'}</ul>
+    ${so ? '' : '<button class="btn primary block" id="addT">＋ Add topic</button>'}`;
+  if (so) {
+    $('.tlist').onclick = e => {
+      const b = e.target.closest('[data-mv]');
+      if (b && moveIn(db.gram, +b.dataset.i, +b.dataset.mv)) keepScroll('.tlist', renderGramHome);
+    };
+  } else $('#addT').onclick = addGramTopic;
+}
+
+async function addGramTopic() {
+  const r = await ask({
+    title: 'Add topic',
+    fields: [{ name: 'name', label: 'Topic name', required: 1, ph: 'e.g. Tenses, Passive voice…' }, { name: 'img', label: 'Image', image: 1 }],
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Add', value: 'ok', check: 1, cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  const t = { id: uid(), name: r.v.name, img: r.v.img, items: [] };
+  db.gram.push(t);
+  save();
+  editing = t.id; // chủ đề mới: mở ở chế độ sửa để thêm điểm ngữ pháp ngay
+  location.hash = 'gt/' + t.id;
+}
+
+// ===== Ngữ pháp: các điểm ngữ pháp trong 1 chủ đề =====
+function renderGramTopic(t) {
+  const ed = editing === t.id;
+  setBar(t.name, 'g', [ed
+    ? ['Done', 'Finish editing', () => { editing = null; renderGramTopic(t); }, 'text']
+    : ['⚙', 'Edit topic', () => { editing = t.id; renderGramTopic(t); }]]);
+  app.className = tcClass(t, db.gram);
+  app.innerHTML = `
+    ${ed ? topHeadHtml(t) + '<div class="row"><button class="btn primary grow" id="addG">＋ Add grammar</button></div>' : ''}
+    ${ed && t.items.length ? '<p class="muted">Tap a grammar point to edit or delete it. Use ↑ ↓ to change the order.</p>' : ''}
+    <ul class="list" id="grams">${t.items.length ? t.items.map((g, i) => `
+      <li class="item" data-g="${g.id}" style="cursor:pointer">
+        <div class="grow"><b>${esc(g.title)}</b><small>${g.ex.length} examples</small></div>
+        ${ed ? mvBtns(i, t.items.length) + '<span class="pen">✎</span>' : '<span class="chev">›</span>'}
+      </li>`).join('')
+      : `<li class="empty">${ed ? 'No grammar points yet. Tap “＋ Add grammar”.' : 'No grammar points yet. Tap ⚙ to add.'}</li>`}</ul>`;
+  if (ed) {
+    $('#addG').onclick = () => { location.hash = 'ge/' + t.id + '/new'; };
+    $('#editT').onclick = () => editTopic(t);
+    $('#delT').onclick = () => deleteTopic(t, db.gram, 'items', 'g');
+  }
+  $('#grams').onclick = e => {
+    const mv = e.target.closest('[data-mv]');
+    if (mv) { if (moveIn(t.items, +mv.dataset.i, +mv.dataset.mv)) renderGramTopic(t); return; } // đổi thứ tự
+    const li = e.target.closest('[data-g]');
+    if (!li) return;
+    location.hash = (editing === t.id ? 'ge/' : 'gd/') + t.id + '/' + li.dataset.g;
+  };
+}
+
+// ===== Ngữ pháp: trang chi tiết =====
+// Khung cấu trúc, cách dùng, câu ví dụ. Nút Meaning dùng chung cài đặt ẩn / hiện nghĩa câu ví dụ (opt.exvi).
+// Câu ví dụ giống câu ví dụ của từ vựng: 🔊 đọc cả câu, chạm 1 từ thì đọc và xem nghĩa, chữ đỏ là từ trong Notes,
+// bôi đen chữ thì hiện nút "＋ Add to Notes".
+function renderGramDetail(t, g) {
+  setBar(g.title, 'gt/' + t.id, [['✎', 'Edit', () => { location.hash = 'ge/' + t.id + '/' + g.id; }]]);
+  app.className = tcClass(t, db.gram);
+  app.innerHTML = `
+    ${g.struct ? `<div class="gstruct">${esc(g.struct)}</div>` : ''}
+    ${g.usage ? `<div class="sect gusage">${esc(g.usage)}</div>` : ''}
+    <div class="row">
+      <button class="btn primary grow" id="gPrac" ${g.ex.length ? '' : 'disabled'}>✍️ Practice</button>
+      <button class="btn grow" id="gVi">${opt.exvi ? 'Meaning: On' : 'Meaning: Off'}</button>
+    </div>
+    <ul class="list" id="gExs">${g.ex.length ? g.ex.map((x, i) => `
+      <li class="item gex" data-i="${i}">
+        <button class="exbtn" data-say aria-label="Listen">🔊</button>
+        <div class="grow"><div class="en" data-hl="${esc(x.en)}">${hlHtml(x.en)}</div>${x.vi ? `<span class="exvi">${esc(x.vi)}</span>` : ''}</div>
+      </li>`).join('')
+      : '<li class="empty">No examples yet. Tap ✎ to add.</li>'}</ul>`;
+  $('#gPrac').onclick = () => { location.hash = 'gp/' + t.id + '/' + g.id; };
+  $('#gVi').onclick = e => {
+    opt.exvi = !opt.exvi;
+    saveOpt();
+    document.body.classList.toggle('hide-exvi', !opt.exvi);
+    e.target.textContent = opt.exvi ? 'Meaning: On' : 'Meaning: Off';
+  };
+  $('#gExs').onclick = e => {
+    const nt = e.target.closest('.nt'); // chạm chữ đỏ: xem nghĩa trong Notes
+    if (nt) { showNote(nt.dataset.nt); return; }
+    const tw = tapWord(e); // chạm 1 từ trong câu: đọc và xem nghĩa
+    if (tw) { showWord(tw); return; }
+    const b = e.target.closest('[data-say]'); // nút 🔊: đọc cả câu
+    if (b) speak(g.ex[+b.closest('[data-i]').dataset.i].en);
+  };
+}
+
+// ===== Ngữ pháp: màn hình nhập / sửa =====
+// Enter ở câu tiếng Anh → xuống ô nghĩa; Enter ở ô nghĩa → thêm câu ví dụ tiếp theo.
+function renderGramEdit(t, gid) {
+  const g = t.items.find(x => x.id === gid);
+  if (!ge || ge.key !== t.id + '/' + gid) {
+    ge = { key: t.id + '/' + gid, dirty: false, title: g ? g.title : '', struct: g ? g.struct : '', usage: g ? g.usage : '',
+      rows: g && g.ex.length ? g.ex.map(x => Object.assign({}, x)) : [{ en: '', vi: '' }] };
+  }
+  const backTo = g ? 'gd/' + t.id + '/' + g.id : 'gt/' + t.id;
+  setBar(g ? 'Edit grammar' : 'New grammar', null, [['Save', 'Save', () => saveGramEdit(t, g), 'text']]);
+  const back = $('#back');
+  back.hidden = false;
+  back.onclick = () => {
+    if (ge && ge.dirty && !confirm('Discard your changes?')) return;
+    location.hash = backTo;
+  };
+  app.className = tcClass(t, db.gram);
+  app.innerHTML = `
+    <label>Title *<input id="geTitle" value="${esc(ge.title)}" placeholder="e.g. Present perfect" autocomplete="off"></label>
+    <label>Structure<textarea id="geStruct" rows="3" lang="en" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"
+      placeholder="(+) S + have/has + V3&#10;(−) S + have/has + not + V3&#10;(?) Have/Has + S + V3?">${esc(ge.struct)}</textarea></label>
+    <label>Usage (optional)<textarea id="geUsage" rows="2" placeholder="When to use it, signal words…">${esc(ge.usage)}</textarea></label>
+    <div class="label">Examples</div>
+    <div id="geRows"></div>
+    <div class="row addrow">
+      <button class="btn grow" id="geAdd">＋ Add example</button>
+      <button class="btn grow" id="gePaste">Paste text</button>
+    </div>
+    ${g ? '<div class="row"><button class="btn grow danger" id="geDel">Delete grammar point</button></div>' : ''}
+    <p class="muted">Press Return after a sentence to type its meaning. Press Return after a meaning to add the next example.</p>`;
+  const tf = [['#geTitle', 'title'], ['#geStruct', 'struct'], ['#geUsage', 'usage']];
+  tf.forEach(([sel, k]) => {
+    const el = $(sel);
+    el.oninput = () => { ge[k] = el.value; ge.dirty = true; if (el.tagName === 'TEXTAREA') fitHeight(el); };
+    if (el.tagName === 'TEXTAREA') fitHeight(el);
+  });
+  $('#geAdd').onclick = () => geAdd(ge.rows.length);
+  $('#gePaste').onclick = gePaste;
+  if (g) $('#geDel').onclick = () => {
+    if (!confirm(`Delete "${g.title}"?`)) return;
+    t.items = t.items.filter(x => x !== g);
+    save();
+    ge = null;
+    location.hash = 'gt/' + t.id;
+  };
+  const box = $('#geRows');
+  box.oninput = e => {
+    const row = e.target.closest('[data-i]');
+    if (!row || !e.target.dataset.f) return;
+    ge.rows[+row.dataset.i][e.target.dataset.f] = e.target.value;
+    ge.dirty = true;
+    fitHeight(e.target);
+  };
+  box.onkeydown = e => {
+    if (e.key !== 'Enter' || e.isComposing || !e.target.dataset.f) return; // đang gõ bằng bộ gõ (IME) thì bỏ qua
+    e.preventDefault();
+    const i = +e.target.closest('[data-i]').dataset.i;
+    if (e.target.dataset.f === 'en') box.querySelector(`[data-i="${i}"] [data-f="vi"]`).focus();
+    else geAdd(i + 1);
+  };
+  box.onclick = e => {
+    const b = e.target.closest('[data-act]');
+    if (!b) return;
+    const i = +b.closest('[data-i]').dataset.i;
+    const rows = ge.rows;
+    if (b.dataset.act === 'up' && i > 0) [rows[i - 1], rows[i]] = [rows[i], rows[i - 1]];
+    else if (b.dataset.act === 'down' && i < rows.length - 1) [rows[i + 1], rows[i]] = [rows[i], rows[i + 1]];
+    else if (b.dataset.act === 'del') rows.splice(i, 1);
+    ge.dirty = true;
+    geDraw();
+  };
+  geDraw();
+}
+
+function geDraw(focus) {
+  const n = ge.rows.length;
+  $('#geRows').innerHTML = ge.rows.map((r, i) => `
+    <div class="cerow gr" data-i="${i}">
+      <div class="cetop">
+        <span class="muted grow">Example ${i + 1}</span>
+        <button class="icon sm" data-act="up" aria-label="Move up" ${i ? '' : 'disabled'}>↑</button>
+        <button class="icon sm" data-act="down" aria-label="Move down" ${i < n - 1 ? '' : 'disabled'}>↓</button>
+        <button class="icon sm" data-act="del" aria-label="Delete">✕</button>
+      </div>
+      <textarea data-f="en" rows="1" placeholder="Sentence" lang="en" autocomplete="off" enterkeyhint="next">${esc(r.en)}</textarea>
+      <textarea data-f="vi" rows="1" placeholder="Meaning (optional)" autocomplete="off" enterkeyhint="next">${esc(r.vi)}</textarea>
+    </div>`).join('');
+  $('#geRows').querySelectorAll('textarea').forEach(fitHeight);
+  if (focus != null) {
+    const el = document.querySelector(`#geRows [data-i="${focus}"] [data-f="en"]`);
+    if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); }
+  }
+}
+
+function geAdd(at) {
+  ge.rows.splice(at, 0, { en: '', vi: '' });
+  ge.dirty = true;
+  geDraw(at);
+}
+
+// Dán nhiều câu một lần: mỗi dòng 1 câu, nghĩa đặt sau dấu |
+async function gePaste() {
+  const r = await ask({
+    title: 'Paste text',
+    msg: 'One example per line. Add the meaning after |.',
+    fields: [{ name: 'text', label: 'Text', required: 1, multi: 1, rows: 8,
+      ph: 'I have lived here for five years. | Tôi đã sống ở đây năm năm.\nShe has already finished. | Cô ấy đã làm xong rồi.' }],
+    buttons: [{ label: 'Cancel', value: null }, { label: 'Add', value: 'ok', check: 1, cls: 'primary' }]
+  });
+  if (!r.btn) return;
+  const rows = r.v.text.split(/\r?\n/).map(l => {
+    const k = l.indexOf('|');
+    return k < 0 ? { en: l.trim(), vi: '' } : { en: l.slice(0, k).trim(), vi: l.slice(k + 1).trim() };
+  }).filter(x => x.en);
+  if (!rows.length) { toast('No sentences found'); return; }
+  ge.rows = ge.rows.filter(x => x.en.trim() || x.vi.trim()).concat(rows); // bỏ các ô còn trống
+  ge.dirty = true;
+  geDraw();
+  toast(`Added ${rows.length} examples`);
+}
+
+function saveGramEdit(t, g) {
+  const title = ge.title.trim();
+  if (!title) { $('#geTitle').focus(); toast('Enter a title'); return; }
+  const bad = ge.rows.findIndex(r => !r.en.trim() && r.vi.trim());
+  if (bad >= 0) { geDraw(bad); toast('This sentence is empty'); return; }
+  const ex = ge.rows.filter(r => r.en.trim()).map(r => ({ en: r.en.trim(), vi: r.vi.trim() }));
+  const struct = ge.struct.replace(/\s+$/, ''), usage = ge.usage.trim();
+  if (g) Object.assign(g, { title, struct, usage, ex });
+  else { g = { id: uid(), title, struct, usage, ex }; t.items.push(g); }
+  save();
+  ge = null;
+  location.hash = 'gd/' + t.id + '/' + g.id;
+}
+
+// ===== Ngữ pháp: luyện gõ câu =====
+// Đề bài là nghĩa tiếng Việt (hoặc nghe câu). Gõ câu tiếng Anh → chấm như chế độ Type của Study (chỉ tính lần kiểm tra đầu).
+function renderGramPractice(t, g) {
+  if (!gst || gst.key !== g.id) {
+    const ids = g.ex.map((_, i) => i);
+    if (opt.shuffle) ids.sort(() => Math.random() - 0.5);
+    gst = { key: g.id, ids, i: 0, res: {}, said: null, hint: false };
+  }
+  setBar('Practice: ' + g.title, 'gd/' + t.id + '/' + g.id);
+  app.className = tcClass(t, db.gram);
+  const n = gst.ids.length;
+  const k = gst.i < n ? gst.ids[gst.i] : -1;
+  const x = k >= 0 ? g.ex[k] : null;
+  const byVi = x && opt.stAsk === 'vi' && x.vi; // câu không có nghĩa thì đọc to để nghe
+  let body;
+  if (!x) {
+    const ok = gst.ids.filter(i => gst.res[i]).length;
+    const bad = gst.ids.filter(i => gst.res[i] === false);
+    body = `<div class="done"><div class="big">${ok === n ? '🎉' : '📝'} ${ok} / ${n}</div><p>correct</p>
+      ${bad.length ? `<ul class="list pwrong">${bad.map(i => `<li class="item"><div class="grow"><b>${esc(g.ex[i].en)}</b>
+        ${g.ex[i].vi ? `<div class="muted">${esc(g.ex[i].vi)}</div>` : ''}</div></li>`).join('')}</ul>
+        <button class="btn primary" id="retry">Retry wrong sentences (${bad.length})</button> ` : ''}
+      <button class="btn ${bad.length ? '' : 'primary'}" id="again">Practice again</button></div>`;
+  } else {
+    body = `
+      <p class="prog">${gst.i + 1} / ${n}</p>
+      <div class="card pask">${byVi
+        ? `<div class="mid">${esc(x.vi)}</div><div class="hint">Write it in English</div>`
+        : '<button class="sayb" id="sayQ" aria-label="Listen again">🔊</button><div class="hint">Listen, then write the sentence</div>'}</div>
+      ${g.struct ? `<button class="btn small" id="hint">💡 Structure</button>${gst.hint ? `<div class="gstruct" style="margin-top:8px">${esc(g.struct)}</div>` : ''}` : ''}
+      <form class="tform long" id="tf"><input id="ti" placeholder="Type the sentence…" lang="en" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="go">
+        <button class="btn primary">Check</button></form>
+      <div id="ans" hidden></div>
+      <div class="row row3">
+        <button class="btn grow" id="prev" ${gst.i ? '' : 'disabled'}>◀ Prev</button>
+        <button class="btn grow primary" id="next">Next ▶</button>
+      </div>`;
+  }
+  app.innerHTML = `<div class="opts">
+      <button class="chip" data-o="stAsk">${opt.stAsk === 'vi' ? '🇻🇳 Meaning → write' : '🔊 Listen → write'}</button>
+      <button class="chip ${opt.shuffle ? 'on' : ''}" data-o="shuffle">Shuffle</button>
+    </div>` + body;
+  app.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
+    if (b.dataset.o === 'stAsk') opt.stAsk = opt.stAsk === 'vi' ? 'say' : 'vi';
+    else { opt.shuffle = !opt.shuffle; gst = null; }
+    saveOpt();
+    if (gst) gst.said = null;
+    renderGramPractice(t, g);
+  });
+  const again = $('#again');
+  if (again) again.onclick = () => { gst = null; renderGramPractice(t, g); };
+  const retry = $('#retry');
+  if (retry) retry.onclick = () => {
+    gst.ids = gst.ids.filter(i => gst.res[i] === false);
+    gst.i = 0; gst.res = {}; gst.said = null;
+    renderGramPractice(t, g);
+  };
+  if (!x) return;
+
+  const go = d => { gst.i += d; gst.said = null; renderGramPractice(t, g); };
+  $('#prev').onclick = () => go(-1);
+  $('#next').onclick = () => go(1);
+  const hint = $('#hint');
+  if (hint) hint.onclick = () => { gst.hint = !gst.hint; renderGramPractice(t, g); };
+  if (!byVi) {
+    $('#sayQ').onclick = () => speak(x.en);
+    if (gst.said !== k) { gst.said = k; speak(x.en); } // tự đọc 1 lần khi sang câu mới
+  }
+  const ans = $('#ans');
+  const showAns = (head, enHtml) => {
+    ans.innerHTML = `<div class="pans">${head}<div class="mid">${enHtml || esc(x.en)}</div>
+      ${!byVi && x.vi ? `<div class="muted">${esc(x.vi)}</div>` : ''}
+      <div><button class="btn small" id="sayA">🔊 Listen</button></div></div>`;
+    ans.hidden = false;
+    $('#sayA').onclick = () => speak(x.en);
+  };
+  // Đúng rồi bấm Enter lần nữa để sang câu sau
+  const ti = $('#ti');
+  let passed = null;
+  $('#tf').onsubmit = e => {
+    e.preventDefault();
+    const v = ti.value.trim();
+    if (!v) return;
+    if (passed === v) { go(1); return; }
+    const ok = normAns(v) === normAns(x.en);
+    if (!(k in gst.res)) gst.res[k] = ok; // chỉ tính lần kiểm tra đầu tiên
+    ti.classList.toggle('ok', ok);
+    ti.classList.toggle('ng', !ok);
+    passed = ok ? v : null;
+    if (ok) showAns('<div class="pres ok">✓ Correct!</div>');
+    else {
+      const [a, b] = diffHtml(v, x.en);
+      showAns(`<div class="pres ng">✗ Not quite</div><div class="pdiff">You: ${a}</div>`, b);
+    }
+    speak(x.en);
+  };
+  ti.focus();
 }
 
 // ===== Trình phát dùng chung (Listen từ vựng, Conversation) =====
@@ -3279,16 +3647,32 @@ function normalizeConv(d) {
   }));
 }
 
+function normalizeGram(d) {
+  return (Array.isArray(d.gram) ? d.gram : []).filter(t => t && t.name).map(t => ({
+    id: uid(),
+    name: String(t.name),
+    img: isImg(t.img) ? t.img : '',
+    items: (Array.isArray(t.items) ? t.items : []).filter(g => g && g.title).map(g => ({
+      id: uid(),
+      title: String(g.title),
+      struct: String(g.struct || ''),
+      usage: String(g.usage || ''),
+      ex: (Array.isArray(g.ex) ? g.ex : []).filter(x => x && x.en).map(x => ({ en: String(x.en), vi: String(x.vi || '') }))
+    }))
+  }));
+}
+
 $('#fileIn').onchange = async e => {
   const f = e.target.files[0];
   e.target.value = '';
   if (!f) return;
-  let topics, conv, banners, avatars, notes;
+  let topics, conv, gram, banners, avatars, notes;
   try {
     const d = JSON.parse(await f.text());
     if (!Array.isArray(d.topics)) throw new Error();
     topics = normalize(d);
     conv = normalizeConv(d);
+    gram = normalizeGram(d);
     // File sao lưu cũ có 1 ảnh (banner), file mới có danh sách ảnh (banners)
     banners = (Array.isArray(d.banners) ? d.banners : [d.banner]).filter(isImg).slice(0, BANNER_MAX);
     const av = d.avatars || {};
@@ -3303,12 +3687,14 @@ $('#fileIn').onchange = async e => {
   const r = await ask({
     title: 'Import data',
     msg: `The file has ${topics.length} vocabulary topics (${topics.reduce((s, t) => s + allWords(t).length, 0)} words) and ` +
-      `${conv.length} conversation topics (${conv.reduce((s, t) => s + t.items.length, 0)} conversations). What do you want to do?`,
+      `${conv.length} conversation topics (${conv.reduce((s, t) => s + t.items.length, 0)} conversations)` +
+      (gram.length ? `, ${gram.length} grammar topics (${gram.reduce((s, t) => s + t.items.length, 0)} grammar points)` : '') +
+      '. What do you want to do?',
     buttons: [{ label: 'Cancel', value: null }, { label: 'Replace all', value: 'rep', cls: 'danger' }, { label: 'Merge', value: 'merge', cls: 'primary' }]
   });
   if (r.btn === 'rep') {
     if (!confirm('All current data will be replaced by the data in the file. Continue?')) return;
-    db = { banners, avatars, notes, topics, conv };
+    db = { banners, avatars, notes, topics, conv, gram };
   } else if (r.btn === 'merge') {
     notes.forEach(n => { if (!noteByText(n.text)) db.notes.push(n); });
     ['T', 'R'].forEach(s => { if (!db.avatars[s] && avatars[s]) db.avatars[s] = avatars[s]; });
@@ -3333,6 +3719,14 @@ $('#fileIn').onchange = async e => {
       if (!t.img && nt.img) t.img = nt.img;
       nt.items.forEach(c => {
         if (!t.items.some(x => x.title.toLowerCase() === c.title.toLowerCase())) t.items.push(c);
+      });
+    });
+    gram.forEach(nt => { // ngữ pháp: gộp theo tên chủ đề, điểm ngữ pháp trùng tiêu đề thì giữ bản đang có
+      const t = db.gram.find(x => x.name.toLowerCase() === nt.name.toLowerCase());
+      if (!t) { db.gram.push(nt); return; }
+      if (!t.img && nt.img) t.img = nt.img;
+      nt.items.forEach(g => {
+        if (!t.items.some(x => x.title.toLowerCase() === g.title.toLowerCase())) t.items.push(g);
       });
     });
   } else return;
